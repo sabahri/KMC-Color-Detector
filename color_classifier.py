@@ -31,7 +31,7 @@ from matplotlib import colors
 flags = [i for i in dir(cv2) if i.startswith('COLOR_')]
 
 # Import image from path file and convert from BGR to RGB format
-path = "/Users/salima/Desktop/Color Stories Site/images/camping_white_mountains.jpg"
+path = "/Users/salima/Desktop/Git/Color-Story-Generator/images/utah_sunset.jpg"
 original_image = cv2.imread(path)
 original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 
@@ -41,6 +41,7 @@ reduced_image = cv2.resize(original_image, (0,0), fx=0.01, fy=0.01, interpolatio
 #gray_flowers = cv2.cvtColor(flowers, cv2.COLOR_RGB2GRAY)
 #edges = cv2.Canny(gray_flowers, 60,100)
 
+'''
 #########################################
 ############ Comparing Photos ###########
 #########################################
@@ -59,6 +60,7 @@ plt.tight_layout
 ##################################
 ######### Scatter Plots ##########
 ##################################
+'''
 
 # Facecolors
 
@@ -69,10 +71,12 @@ pixel_colors = norm(pixel_colors).tolist()
 
 # Split image into component channels (RGB, HSV respectively)
 
-r, g, b = cv2.split(reduced_image)							
+r, g, b = cv2.split(reduced_image)						
 hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
 h, s, v = cv2.split(hsv_image)
 
+
+'''
 # Subplots Setup
 
 fig = plt.figure()
@@ -92,14 +96,13 @@ ax2.scatter(h.flatten(), s.flatten(), v.flatten(), facecolors=pixel_colors, mark
 ax2.set_xlabel("Hue")
 ax2.set_ylabel("Saturation")
 ax2.set_zlabel("Value")
-
-# plt.show()
+'''
 
 ##############################################
 ############ K-means Clustering ##############
 ##############################################
 
-# 1. Randomly select k cluster centroids       							### DONE
+# 1. Randomly select k cluster centroids       							
 # 2. Assign each data point to the nearest centroid to form clusters
 # 3. Recalculate centroid by averaging points (update step)
 # 4. Repeat until convergence
@@ -109,10 +112,6 @@ ax2.set_zlabel("Value")
 ### Are there any existing algorithms that do this efficiently? ###
 ### This may end up being problematic for values close to 0 / 360 in the "red" space ###
 
-# Farthest Point Sampling
-
-def fps(array, num_centroids):
-	
 
 # image_array is the 1% reduced image (shape = h(pixels) x w(pixels) x 3(color channels))
 # num_centroids is the number of clusters to aim for (integer)
@@ -128,6 +127,52 @@ def reshape_image(image_array):
 
 	return(num_pixels, image_reshaped)
 
+# Plotting the range of Hues in the image
+# Do this in a cylindrical representation?
+
+def hue_range(array):
+	image_reshaped = reshape_image(array)[1]
+	hue = image_reshaped[:,0]
+
+	count = np.zeros(180)
+
+	for i in range(hue.shape[0]):
+		for j in range(180):
+			if hue[i] == j:
+				count[j] += 1
+	'''
+	hues_opencv = np.linspace(0, 179, 180)
+	#plt.scatter(hues_opencv, count, color = 'lightgreen', edgecolor = 'black')
+	plt.hist(hue,180, color='lightgreen', edgecolor = 'black')
+	plt.xlabel('Hue')
+	plt.ylabel('Count')
+	plt.title('Hue Distribution in Image')
+	plt.show()
+	'''
+	return(hue, count)
+
+def hue_circular_plot(array):
+
+	# note, in OpenCV the hue range is from 0 to 180
+	# so all hue values must be doubled to fit onto a cylindrical plot
+
+	hue = hue_range(array)[0] * 2
+	count = hue_range(array)[1]
+
+	hue_rad = np.linspace(0, 179, 180) * 2 * np.pi / 180
+	width = 2*np.pi / 360
+
+	ax = plt.subplot(111, polar = True)
+	bars = ax.bar(hue_rad, count, width=width)
+
+	plt.show()
+
+
+# Farthest Point Sampling
+def fps(array):
+	return(None)
+
+# Total random selection of centroids
 def select_centroids(image_array, num_centroids):
 
 	# Reshape 3D array into 2D, with the first dimension being having shape [num_pixels]
@@ -141,13 +186,9 @@ def select_centroids(image_array, num_centroids):
 
 	return(random_centroids)
 
-def kmc(image_array, random_centroids):
-	
+#def kmc(image_array, random_centroids):
 
-
-
-init_centroid = select_centroids(hsv_image, 5)
-
-
+#init_centroid = select_centroids(hsv_image, 5)
+hue_circular_plot(hsv_image)
 
 
