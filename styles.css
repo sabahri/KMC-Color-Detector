@@ -1,0 +1,45 @@
+body {
+	background-color: lightblue;
+}
+
+.title {
+	color: lightpink;
+	background-color: #1F3099;
+	font-size: 32px;
+	text-align: center;
+	padding: 32px;
+	font-family: Garamond, Helvetica, serif;
+}
+
+
+.row {
+	display: flex;
+	align-items: center;
+}
+
+.cell {
+	flex:  1 1 auto;
+	padding: 16px;
+	margin: 16px;
+}
+
+.cell .two {
+}
+
+img {
+	width: 100%;
+	max-width: auto;
+}
+
+/*
+
+.images {
+	display: flex;
+	height:  600px;
+	max-width: 100%;
+	flex:  auto;
+	justify-content:  space-between;
+}
+
+
+*/
