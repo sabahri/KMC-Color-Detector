@@ -110,11 +110,10 @@ ax2.set_zlabel("Value")
 
 ### Note: maybe add a function to maximize the distance between centroids in hue space ###
 ### Are there any existing algorithms that do this efficiently? ###
-### This may end up being problematic for values close to 0 / 360 in the "red" space ###
+### This may end up being problematic for values close to 0 / 180 in the "red" space ###
 
 
 # image_array is the 1% reduced image (shape = h(pixels) x w(pixels) x 3(color channels))
-# num_centroids is the number of clusters to aim for (integer)
 
 def reshape_image(image_array):
 	height, width, c_channels = image_array.shape
@@ -127,8 +126,7 @@ def reshape_image(image_array):
 
 	return(num_pixels, image_reshaped)
 
-# Plotting the range of Hues in the image
-# Do this in a cylindrical representation?
+# Plotting histogram of Hues in the image, normal and circular representations
 
 def hue_range(array):
 	image_reshaped = reshape_image(array)[1]
@@ -151,7 +149,7 @@ def hue_range(array):
 	'''
 	return(hue, count)
 
-def hue_circular_plot(array):
+def hue_circular_hist(array):
 
 	# note, in OpenCV the hue range is from 0 to 180
 	# so all hue values must be doubled to fit onto a cylindrical plot
@@ -163,16 +161,17 @@ def hue_circular_plot(array):
 	width = 2*np.pi / 360
 
 	ax = plt.subplot(111, polar = True)
-	bars = ax.bar(hue_rad, count, width=width)
+	bars = ax.bar(hue_rad, count, width=width, color = 'lightgreen', edgecolor = 'black')
 
+	plt.title('Circular Representation of Hue Histogram')
 	plt.show()
-
 
 # Farthest Point Sampling
 def fps(array):
 	return(None)
 
 # Total random selection of centroids
+# num_centroids is the number of clusters to aim for (integer)
 def select_centroids(image_array, num_centroids):
 
 	# Reshape 3D array into 2D, with the first dimension being having shape [num_pixels]
@@ -182,13 +181,42 @@ def select_centroids(image_array, num_centroids):
 	# Randomly select location indices in image_array
 	indices = random.sample(range(0, num_pixels), num_centroids)
 
-	random_centroids = image_reshaped[indices]
+	# random_centroids are the HSV values of the randomly selected pixels
+	random_centroids = np.zeros((num_centroids, 3))
+	
+	for i,j in zip(range(num_centroids),indices):
+		#print(image_reshaped[j])
+		random_centroids[i,:] = image_reshaped[j]
 
-	return(random_centroids)
+	#print(random_centroids)
 
-#def kmc(image_array, random_centroids):
+	return(indices, random_centroids)
 
-#init_centroid = select_centroids(hsv_image, 5)
-hue_circular_plot(hsv_image)
+def euclidean_pixels(image_array, num_centroids):
+
+	# Note: num_pixels = image_reshaped.shape[0]
+	num_pixels = reshape_image(image_array)[0]
+	image_reshaped = reshape_image(image_array)[1]
+
+	indices, random_centroids = select_centroids(image_array, num_centroids)
+
+	# Calculating the L2 norm
+
+	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
+	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
+	# num_centroids = 5
+	# random_centroids.shape = num_centroids x c_channels (5 x 3)
+
+	euclidean = np.zeros((num_pixels, num_centroids))
+
+	for i in range(num_pixels):
+		for j in range(num_centroids):
+			euclidean[i,j] = np.linalg.norm(image_reshaped[i] - random_centroids[j])
+
+
+	return(euclidean)
+
+
+euclidean_pixels(hsv_image, 5)
 
 
