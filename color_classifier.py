@@ -27,13 +27,17 @@ import sys
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib import colors
+from matplotlib import Rectangle
 
 # Saving all color space conversions into 'flags' variable
 flags = [i for i in dir(cv2) if i.startswith('COLOR_')]
 
+# Specify number of iterations to use for K-means cluster algorithm
 # Import image from path file and convert from BGR to RGB format
 
-input_image = sys.argv[1]
+num_iter = int(sys.argv[1])
+input_image = sys.argv[2]
+
 #path = "/Users/salima/Desktop/Git/Color-Story-Generator/images/utah_sunset.jpg"
 original_image = cv2.imread(input_image)
 original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
@@ -171,7 +175,7 @@ def fps(array):
 # Total random selection of centroids
 # Centroids here are pixels, not hues
 # num_centroids is the number of clusters to aim for (integer)
-def select_centroids(image_array, num_centroids):
+def init_centroids(image_array, num_centroids):
 
 	# Reshape 3D array into 2D, with the first dimension being having shape [num_pixels]
 	num_pixels = reshape_image(image_array)[0]
@@ -184,16 +188,11 @@ def select_centroids(image_array, num_centroids):
 	random_centroids = np.zeros((num_centroids, 3))
 	
 	for i,j in zip(range(num_centroids),indices):
-		#print(image_reshaped[j])
 		random_centroids[i,:] = image_reshaped[j]
-
-	#print(random_centroids)
 
 	return(indices, random_centroids)
 
-init_indices, init_centroids = select_centroids(hsv_image, 5)
-
-def euclidean_pixels(image_array, num_centroids, indices, centroids):
+def euclidean_pixels(image_array, num_centroids, centroids):
 
 	# Calculating the L2 norm
 
@@ -213,14 +212,14 @@ def euclidean_pixels(image_array, num_centroids, indices, centroids):
 
 	return(euclidean)
 
-def kmc(image_array, num_centroids, indices, centroids):
+def kmc(image_array, num_centroids, centroids):
 
 	# num_pixels = 972
 	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
 	num_pixels, image_reshaped = reshape_image(image_array)
 
 	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
-	euclidean = euclidean_pixels(image_array, num_centroids, indices, centroids)
+	euclidean = euclidean_pixels(image_array, num_centroids, centroids)
 	min_array = np.zeros((num_pixels, num_centroids))
 
 	for i in range(num_pixels):
@@ -233,7 +232,8 @@ def kmc(image_array, num_centroids, indices, centroids):
 	# Updating the centroid location
 	# Reminder: centroid is a specific pixel with HSV values
 	# Euclidean distance minimization is looking for pixels with similar HSV values
-	# When we select a new centroid, we want to updated the average HSV values
+	# When we select a new centroid, we want to updated the average HSV values, 
+	# not pixel location
 
 	min_array = min_array.transpose()
 	num_ones = min_array.sum(axis = 1)[:,None]
@@ -244,7 +244,18 @@ def kmc(image_array, num_centroids, indices, centroids):
 
 	return(average_hsv)
 
+n_centroids = 10
+indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
-kmc(hsv_image, 5, init_indices, init_centroids)
+#print("Randomly selected centroids:", centroids_0)
+for n in range(num_iter):
+	if n == 0:
+		centroid_update = kmc(hsv_image, n_centroids, centroids_0)
+	else:
+		centroid_update = kmc(hsv_image, n_centroids, centroid_update)
+	#print("Updated centroids:", centroid_update)
+	
+
+
 
 #plt.show()
