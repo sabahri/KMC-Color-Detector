@@ -10,7 +10,7 @@
 ############ Things to do ###############
 #########################################
 
-# Face/skin detection to remove skin tone from color story analysis
+# Face/skin detection to remove skin tone from color story analysis 
 # Kmeans clustering to find most dominant colors
 # Add Hues range to colors for more choices in color depth
 # Output HEX color codes for these colors
@@ -21,6 +21,7 @@ import cv2
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import sys
 
 # To make colored 3D scatter plot
 from mpl_toolkits.mplot3d import Axes3D
@@ -31,8 +32,10 @@ from matplotlib import colors
 flags = [i for i in dir(cv2) if i.startswith('COLOR_')]
 
 # Import image from path file and convert from BGR to RGB format
-path = "/Users/salima/Desktop/Git/Color-Story-Generator/images/utah_sunset.jpg"
-original_image = cv2.imread(path)
+
+input_image = sys.argv[1]
+#path = "/Users/salima/Desktop/Git/Color-Story-Generator/images/utah_sunset.jpg"
+original_image = cv2.imread(input_image)
 original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 
 # Reducing to 5% of image resolution to speed up color splitting
@@ -41,7 +44,6 @@ reduced_image = cv2.resize(original_image, (0,0), fx=0.01, fy=0.01, interpolatio
 #gray_flowers = cv2.cvtColor(flowers, cv2.COLOR_RGB2GRAY)
 #edges = cv2.Canny(gray_flowers, 60,100)
 
-'''
 #########################################
 ############ Comparing Photos ###########
 #########################################
@@ -60,7 +62,7 @@ plt.tight_layout
 ##################################
 ######### Scatter Plots ##########
 ##################################
-'''
+
 
 # Facecolors
 
@@ -75,8 +77,6 @@ r, g, b = cv2.split(reduced_image)
 hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
 h, s, v = cv2.split(hsv_image)
 
-
-'''
 # Subplots Setup
 
 fig = plt.figure()
@@ -96,22 +96,21 @@ ax2.scatter(h.flatten(), s.flatten(), v.flatten(), facecolors=pixel_colors, mark
 ax2.set_xlabel("Hue")
 ax2.set_ylabel("Saturation")
 ax2.set_zlabel("Value")
-'''
 
 ##############################################
 ############ K-means Clustering ##############
 ##############################################
 
-# 1. Randomly select k cluster centroids       							
-# 2. Assign each data point to the nearest centroid to form clusters
-# 3. Recalculate centroid by averaging points (update step)
+# 1. Randomly select k cluster centroids       							### Done					
+# 2. Assign each data point to the nearest centroid to form clusters	### Done
+# 3. Recalculate centroid by averaging points (update step)				### Done
 # 4. Repeat until convergence
-
 
 ### Note: maybe add a function to maximize the distance between centroids in hue space ###
 ### Are there any existing algorithms that do this efficiently? ###
 ### This may end up being problematic for values close to 0 / 180 in the "red" space ###
 
+##### The commented numbers are expected results for utah_sunset.jpg
 
 # image_array is the 1% reduced image (shape = h(pixels) x w(pixels) x 3(color channels))
 
@@ -138,15 +137,15 @@ def hue_range(array):
 		for j in range(180):
 			if hue[i] == j:
 				count[j] += 1
-	'''
-	hues_opencv = np.linspace(0, 179, 180)
+	
+	#hues_opencv = np.linspace(0, 179, 180)
 	#plt.scatter(hues_opencv, count, color = 'lightgreen', edgecolor = 'black')
-	plt.hist(hue,180, color='lightgreen', edgecolor = 'black')
-	plt.xlabel('Hue')
-	plt.ylabel('Count')
-	plt.title('Hue Distribution in Image')
-	plt.show()
-	'''
+	#plt.hist(hue,180, color='lightgreen', edgecolor = 'black')
+	#plt.xlabel('Hue')
+	#plt.ylabel('Count')
+	#plt.title('Hue Distribution in Image')
+	#plt.show()
+	
 	return(hue, count)
 
 def hue_circular_hist(array):
@@ -164,13 +163,13 @@ def hue_circular_hist(array):
 	bars = ax.bar(hue_rad, count, width=width, color = 'lightgreen', edgecolor = 'black')
 
 	plt.title('Circular Representation of Hue Histogram')
-	plt.show()
 
 # Farthest Point Sampling
 def fps(array):
 	return(None)
 
 # Total random selection of centroids
+# Centroids here are pixels, not hues
 # num_centroids is the number of clusters to aim for (integer)
 def select_centroids(image_array, num_centroids):
 
@@ -192,31 +191,60 @@ def select_centroids(image_array, num_centroids):
 
 	return(indices, random_centroids)
 
-def euclidean_pixels(image_array, num_centroids):
+init_indices, init_centroids = select_centroids(hsv_image, 5)
 
-	# Note: num_pixels = image_reshaped.shape[0]
-	num_pixels = reshape_image(image_array)[0]
-	image_reshaped = reshape_image(image_array)[1]
-
-	indices, random_centroids = select_centroids(image_array, num_centroids)
+def euclidean_pixels(image_array, num_centroids, indices, centroids):
 
 	# Calculating the L2 norm
 
 	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
 	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
 	# num_centroids = 5
-	# random_centroids.shape = num_centroids x c_channels (5 x 3)
+	# centroids.shape = num_centroids x c_channels (5 x 3)
+
+	# Note: num_pixels = image_reshaped.shape[0]
+	num_pixels, image_reshaped = reshape_image(image_array)
 
 	euclidean = np.zeros((num_pixels, num_centroids))
 
 	for i in range(num_pixels):
 		for j in range(num_centroids):
-			euclidean[i,j] = np.linalg.norm(image_reshaped[i] - random_centroids[j])
-
+			euclidean[i,j] = np.linalg.norm(image_reshaped[i] - centroids[j])
 
 	return(euclidean)
 
+def kmc(image_array, num_centroids, indices, centroids):
 
-euclidean_pixels(hsv_image, 5)
+	# num_pixels = 972
+	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
+	num_pixels, image_reshaped = reshape_image(image_array)
+
+	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
+	euclidean = euclidean_pixels(image_array, num_centroids, indices, centroids)
+	min_array = np.zeros((num_pixels, num_centroids))
+
+	for i in range(num_pixels):
+		for j in range(num_centroids):
+			if euclidean[i,j] == min(euclidean[i,:]):
+				min_array[i,j] = 1
+			else:
+				min_array[i,j] = 0
+
+	# Updating the centroid location
+	# Reminder: centroid is a specific pixel with HSV values
+	# Euclidean distance minimization is looking for pixels with similar HSV values
+	# When we select a new centroid, we want to updated the average HSV values
+
+	min_array = min_array.transpose()
+	num_ones = min_array.sum(axis = 1)[:,None]
+
+	average_hsv = (min_array @ image_reshaped) / num_ones
+
+	average_hsv = np.asarray(average_hsv, dtype='int')
+
+	return(average_hsv)
 
 
+kmc(hsv_image, 5, init_indices, init_centroids)
+
+#plt.show()
