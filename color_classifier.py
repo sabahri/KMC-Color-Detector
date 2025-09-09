@@ -17,17 +17,19 @@
 # Web scraping (might be a separate script)
 # App construction
 
+
+##### The commented numbers are expected results for utah_sunset.jpg
+
 import cv2
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 import sys
 
-# To make colored 3D scatter plot
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib import colors
-from matplotlib import Rectangle
+from matplotlib.patches import Rectangle
 
 # Saving all color space conversions into 'flags' variable
 flags = [i for i in dir(cv2) if i.startswith('COLOR_')]
@@ -38,11 +40,13 @@ flags = [i for i in dir(cv2) if i.startswith('COLOR_')]
 num_iter = int(sys.argv[1])
 input_image = sys.argv[2]
 
-#path = "/Users/salima/Desktop/Git/Color-Story-Generator/images/utah_sunset.jpg"
 original_image = cv2.imread(input_image)
-original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
+
+# 2736 x 3648 x 3 array
+original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)		
 
 # Reducing to 5% of image resolution to speed up color splitting
+# 27 x 36 x 3 array
 reduced_image = cv2.resize(original_image, (0,0), fx=0.01, fy=0.01, interpolation=cv2.INTER_AREA)
 
 #gray_flowers = cv2.cvtColor(flowers, cv2.COLOR_RGB2GRAY)
@@ -69,11 +73,12 @@ plt.tight_layout
 
 
 # Facecolors
+h, w, c = reduced_image.shape
 
-pixel_colors = reduced_image.reshape((np.shape(reduced_image)[0] * np.shape(reduced_image)[1], 3))
+pixel_colors = reduced_image.reshape(h * w, c)
 norm = colors.Normalize(vmin = 1., vmax = 1.)
-norm.autoscale(pixel_colors)
-pixel_colors = norm(pixel_colors).tolist()
+norm.autoscale(pixel_colors)					# 972 x 3 array
+pixel_colors = norm(pixel_colors).tolist()		# 972 x 3 list
 
 # Split image into component channels (RGB, HSV respectively)
 
@@ -113,8 +118,6 @@ ax2.set_zlabel("Value")
 ### Note: maybe add a function to maximize the distance between centroids in hue space ###
 ### Are there any existing algorithms that do this efficiently? ###
 ### This may end up being problematic for values close to 0 / 180 in the "red" space ###
-
-##### The commented numbers are expected results for utah_sunset.jpg
 
 # image_array is the 1% reduced image (shape = h(pixels) x w(pixels) x 3(color channels))
 
@@ -247,15 +250,28 @@ def kmc(image_array, num_centroids, centroids):
 n_centroids = 10
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
-#print("Randomly selected centroids:", centroids_0)
 for n in range(num_iter):
 	if n == 0:
+		# centroid_update shape is 10 x 3 array
 		centroid_update = kmc(hsv_image, n_centroids, centroids_0)
 	else:
 		centroid_update = kmc(hsv_image, n_centroids, centroid_update)
-	#print("Updated centroids:", centroid_update)
-	
+		
+
+centroid_hsv = cv2.merge(centroid_update)	# 3 x 1 x 10 array
+centroid_hsv = np.transpose(centroid_hsv)	# 10 x 1 x 3 array
+centroid_rgb = cv2.cvtColor(centroid_hsv, cv2.COLOR_HSV2RGB)
+    
+'''
+fig3, ax3 = plt.subplots()
+rect = Rectangle((0.2,0.2), width=0.5, height=0.5, edgecolor = 'black', facecolor = centroid_hsv)
+ax3.add_patch(rect)
+ax3.set_xlim(0,1)
+ax3.set_ylim(0,1)
+ax.set_aspect('equal')
+plt.grid(False)
+plt.title('Rectangle')
 
 
-
-#plt.show()
+plt.show()
+'''
