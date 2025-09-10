@@ -265,33 +265,35 @@ def sort_centroids(imfile, num_centroids, total_count):
 
 	return(sorted_colors)
 
+def convert_centroids(average_hsv):
+	array_hsv = np.transpose(cv2.merge(average_hsv)) # 10 x 1 x 3 array
+	array_hsv = array_hsv.astype(np.uint8)
+
+	return(array_hsv)
+
 n_centroids = 10
+
+# Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
+colors_0 = convert_centroids(centroids_0)
+plt.figure()
+plt.imshow(colors_0)
 
 #plt.ion()
-plt.figure()
 
 # Initiating with random centroid selection
 
 n = 0
 centroid_update, totals_array = kmc(hsv_image, n_centroids, centroids_0)
 
-#figure, ax = plt.subplots(figsize=(10,8))
-#line1, = ax.plot()
-
 for n in range(1, num_iter):
 	centroid_update, totals_array = kmc(hsv_image, n_centroids, centroid_update)
-		
-	centroid_hsv = cv2.merge(centroid_update)	# 3 x 1 x 10 array
-	centroid_hsv = np.transpose(centroid_hsv)	# 10 x 1 x 3 array
-	centroid_hsv = centroid_hsv.astype(np.uint8)
+	centroid_hsv =  convert_centroids(centroid_update)
 
 	frequent_colors = sort_centroids(centroid_hsv, n_centroids, totals_array)
 
-	#figure.canvas.draw()
-	#figure.canvas.flush_events()
 
-plt.imshow(frequent_colors)
+#plt.imshow(frequent_colors)
 plt.show()
 
 
