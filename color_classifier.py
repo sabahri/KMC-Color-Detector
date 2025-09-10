@@ -29,7 +29,7 @@ import sys
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib import colors
-from matplotlib.patches import Rectangle
+import matplotlib.gridspec as gridspec
 
 # Saving all color space conversions into 'flags' variable
 flags = [i for i in dir(cv2) if i.startswith('COLOR_')]
@@ -48,9 +48,7 @@ original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 # Reducing to 5% of image resolution to speed up color splitting
 # 27 x 36 x 3 array
 reduced_image = cv2.resize(original_image, (0,0), fx=0.01, fy=0.01, interpolation=cv2.INTER_AREA)
-
-#gray_flowers = cv2.cvtColor(flowers, cv2.COLOR_RGB2GRAY)
-#edges = cv2.Canny(gray_flowers, 60,100)
+hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
 
 #########################################
 ############ Comparing Photos ###########
@@ -58,10 +56,12 @@ reduced_image = cv2.resize(original_image, (0,0), fx=0.01, fy=0.01, interpolatio
 
 Titles = ["Original", "Resized to 1%"] #, "Canny Edge Detection"]
 images = [original_image, reduced_image] #, edges]
-count = 2
+count = len(images)
+
+plt.figure()
 
 for i in range(count):
-	plt.subplot(1, 2, i+1)
+	plt.subplot(1, len(images), i+1)
 	plt.title(Titles[i])
 	plt.imshow(images[i])
 
@@ -71,19 +71,17 @@ plt.tight_layout
 ######### Scatter Plots ##########
 ##################################
 
-
 # Facecolors
-h, w, c = reduced_image.shape
+hgt, wth, chn = reduced_image.shape
 
-pixel_colors = reduced_image.reshape(h * w, c)
+pixel_colors = reduced_image.reshape(hgt * wth, chn)
 norm = colors.Normalize(vmin = 1., vmax = 1.)
 norm.autoscale(pixel_colors)					# 972 x 3 array
 pixel_colors = norm(pixel_colors).tolist()		# 972 x 3 list
 
 # Split image into component channels (RGB, HSV respectively)
 
-r, g, b = cv2.split(reduced_image)						
-hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
+r, g, b = cv2.split(reduced_image)	
 h, s, v = cv2.split(hsv_image)
 
 # Subplots Setup
@@ -225,6 +223,9 @@ def kmc(image_array, num_centroids, centroids):
 	euclidean = euclidean_pixels(image_array, num_centroids, centroids)
 	min_array = np.zeros((num_pixels, num_centroids))
 
+	# Creating a min_array "mask": ones and zeros matrix to locate
+	# closest centroid
+
 	for i in range(num_pixels):
 		for j in range(num_centroids):
 			if euclidean[i,j] == min(euclidean[i,:]):
@@ -239,39 +240,59 @@ def kmc(image_array, num_centroids, centroids):
 	# not pixel location
 
 	min_array = min_array.transpose()
-	num_ones = min_array.sum(axis = 1)[:,None]
+	total_count = min_array.sum(axis = 1)[:,None]
+	total_count = np.asarray(total_count, dtype='int')
 
-	average_hsv = (min_array @ image_reshaped) / num_ones
+	average_hsv = (min_array @ image_reshaped) / total_count
 
 	average_hsv = np.asarray(average_hsv, dtype='int')
 
-	return(average_hsv)
+	return(average_hsv, total_count)
+
+
+################################################
+######### Running K-means Clustering ###########
+################################################
+
+def sort_centroids(imfile, num_centroids, total_count):
+	# Flattening the total counts array
+	tot = total_count.reshape(num_centroids)
+
+	# Sorting colors in descending order
+	totals_indices = tot.argsort()
+	sorted_totals = tot[totals_indices[::-1]]
+	sorted_colors = imfile[totals_indices[::-1]]
+
+	return(sorted_colors)
 
 n_centroids = 10
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
-for n in range(num_iter):
-	if n == 0:
-		# centroid_update shape is 10 x 3 array
-		centroid_update = kmc(hsv_image, n_centroids, centroids_0)
-	else:
-		centroid_update = kmc(hsv_image, n_centroids, centroid_update)
+#plt.ion()
+plt.figure()
+
+# Initiating with random centroid selection
+
+n = 0
+centroid_update, totals_array = kmc(hsv_image, n_centroids, centroids_0)
+
+#figure, ax = plt.subplots(figsize=(10,8))
+#line1, = ax.plot()
+
+for n in range(1, num_iter):
+	centroid_update, totals_array = kmc(hsv_image, n_centroids, centroid_update)
 		
+	centroid_hsv = cv2.merge(centroid_update)	# 3 x 1 x 10 array
+	centroid_hsv = np.transpose(centroid_hsv)	# 10 x 1 x 3 array
+	centroid_hsv = centroid_hsv.astype(np.uint8)
 
-centroid_hsv = cv2.merge(centroid_update)	# 3 x 1 x 10 array
-centroid_hsv = np.transpose(centroid_hsv)	# 10 x 1 x 3 array
-centroid_rgb = cv2.cvtColor(centroid_hsv, cv2.COLOR_HSV2RGB)
-    
-'''
-fig3, ax3 = plt.subplots()
-rect = Rectangle((0.2,0.2), width=0.5, height=0.5, edgecolor = 'black', facecolor = centroid_hsv)
-ax3.add_patch(rect)
-ax3.set_xlim(0,1)
-ax3.set_ylim(0,1)
-ax.set_aspect('equal')
-plt.grid(False)
-plt.title('Rectangle')
+	frequent_colors = sort_centroids(centroid_hsv, n_centroids, totals_array)
 
+	#figure.canvas.draw()
+	#figure.canvas.flush_events()
 
+plt.imshow(frequent_colors)
 plt.show()
-'''
+
+
+
