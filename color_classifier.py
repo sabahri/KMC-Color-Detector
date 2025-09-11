@@ -81,8 +81,8 @@ pixel_colors = norm(pixel_colors).tolist()		# 972 x 3 list
 
 # Split image into component channels (RGB, HSV respectively)
 
-r, g, b = cv2.split(reduced_image)	
-h, s, v = cv2.split(hsv_image)
+red, grn, blu = cv2.split(reduced_image)	
+hue, sat, val = cv2.split(hsv_image)
 
 # Subplots Setup
 
@@ -91,7 +91,7 @@ ax1 = fig.add_subplot(1, 2, 1, projection = "3d")
 
 # RGB Scatter Plot
 
-ax1.scatter(r.flatten(), g.flatten(), b.flatten(), facecolors=pixel_colors, marker='.')
+ax1.scatter(red.flatten(), grn.flatten(), blu.flatten(), facecolors=pixel_colors, marker='.')
 ax1.set_xlabel("Red")
 ax1.set_ylabel("Green")
 ax1.set_zlabel("Blue")
@@ -99,7 +99,7 @@ ax1.set_zlabel("Blue")
 # HSV Scatter Plot
 
 ax2 = fig.add_subplot(1, 2, 2, projection = "3d")
-ax2.scatter(h.flatten(), s.flatten(), v.flatten(), facecolors=pixel_colors, marker='.')
+ax2.scatter(hue.flatten(), sat.flatten(), val.flatten(), facecolors=pixel_colors, marker='.')
 ax2.set_xlabel("Hue")
 ax2.set_ylabel("Saturation")
 ax2.set_zlabel("Value")
@@ -252,6 +252,7 @@ def kmc(image_array, num_centroids, centroids):
 
 ################################################
 ######### Running K-means Clustering ###########
+#########  And Plotting the Results  ###########
 ################################################
 
 def sort_centroids(imfile, num_centroids, total_count):
@@ -266,35 +267,45 @@ def sort_centroids(imfile, num_centroids, total_count):
 	return(sorted_colors)
 
 def convert_centroids(average_hsv):
-	array_hsv = np.transpose(cv2.merge(average_hsv)) # 10 x 1 x 3 array
-	array_hsv = array_hsv.astype(np.uint8)
+	average_hsv = average_hsv[:,None,:]
+	array_hsv = average_hsv.astype(np.uint8)
+	array_rgb = cv2.cvtColor(array_hsv, cv2.COLOR_HSV2RGB)
 
-	return(array_hsv)
+	return(array_rgb)
 
-n_centroids = 10
+# Issue discovered: the colors may not be represented correctly as they nowhere near approximate
+# the colors in the image. Need to figure out why that is
+# Perhaps start by looking at whether the HSV values of the pixels selected are actually
+# present in the image
 
-# Randomly select first 10 centroids
-indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
-colors_0 = convert_centroids(centroids_0)
-plt.figure()
-plt.imshow(colors_0)
+#colors_0 = convert_centroids(centroids_0)
+#plt.figure()
 
-#plt.ion()
+#plt.imshow(colors_0)
 
 # Initiating with random centroid selection
 
-n = 0
-centroid_update, totals_array = kmc(hsv_image, n_centroids, centroids_0)
+plt.figure()
+
+n_centroids = 10
+# Randomly select first 10 centroids
+indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
+
+centroid_update, totals_array = kmc(hsv_image, n_centroids, centroids_0	)
 
 for n in range(1, num_iter):
 	centroid_update, totals_array = kmc(hsv_image, n_centroids, centroid_update)
-	centroid_hsv =  convert_centroids(centroid_update)
 
-	frequent_colors = sort_centroids(centroid_hsv, n_centroids, totals_array)
+	centroid_rgb =  convert_centroids(centroid_update)
+	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
 
 
-#plt.imshow(frequent_colors)
-plt.show()
+plt.imshow(frequent_colors[0:5,:,:])
+
+try:
+	plt.show()
+except KeyboardInterrupt:
+	sys.exit(0)
 
 
 
