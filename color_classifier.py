@@ -4,7 +4,6 @@
 # Useful Links:
 # https://realpython.com/python-opencv-color-spaces/
 # https://www.timpoulsen.com/2018/finding-the-dominant-colors-of-an-image.html
-# https://stackoverflow.com/questions/29156091/opencv-edge-border-detection-based-on-color
 
 #########################################
 ############ Things to do ###############
@@ -47,8 +46,68 @@ original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 
 # Reducing to 5% of image resolution to speed up color splitting
 # 27 x 36 x 3 array
-reduced_image = cv2.resize(original_image, (0,0), fx=0.01, fy=0.01, interpolation=cv2.INTER_AREA)
+
+# Increasing pixel percentage increases final color accuracy but also runtime
+perc = 0.01
+reduced_image = cv2.resize(original_image, (0,0), fx=perc, fy=perc, interpolation=cv2.INTER_AREA)
 hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
+
+#########################################
+############ Some Useful FXNS ###########
+#########################################
+
+# Converting colors from HSV to RGB for making figures
+def convert_colors(average_hsv):
+	# Adding dimension
+	average_hsv = average_hsv[:,None,:]
+	# Convert back to 8 unsigned integer format
+	array_hsv = average_hsv.astype(np.uint8)
+	# Convert from HSV back to RGB
+	array_rgb = cv2.cvtColor(array_hsv, cv2.COLOR_HSV2RGB)
+
+	return(array_rgb)
+
+# HSV array with Saturation and Value set to 255
+def h_255_255(hues_array):
+	hues_array = np.unique(hues_array)
+	num_hues = hues_array.shape[0]
+
+	hues_opencv = np.zeros((num_hues,3))
+	for i in range(num_hues):
+		hues_opencv[i][0] = hues_array[i] + 1
+		hues_opencv[i][1:3] = 255
+
+	return(hues_opencv)
+
+# hues_opencv = np.zeros((180,3))
+# for i in range(180):
+# 	hues_opencv[i][0] = i + 1
+# 	hues_opencv[i][1:3] = 255
+
+# all_hues_opencv =  np.zeros((180,3))
+# hues_opencv_rgb = convert_colors(all_hues_opencv) / 255
+
+#def image_rgb(array_hsv):
+#	hues_multi_array = np.zeros((180,3))
+
+def sort_centroids(imfile, num_centroids, total_count):
+	# Flattening the total counts array
+	tot = total_count.reshape(num_centroids)
+
+	totals_indices = tot.argsort()
+
+	# Sorting colors in descending order
+	sorted_totals = tot[totals_indices[::-1]]
+	sorted_colors = imfile[totals_indices[::-1]]
+
+	return(sorted_colors)
+
+def sort_arrays(arr1, arr2):
+	arr1_indices = arr1.argsort()
+	arr1_sorted = arr1[arr1_indices]
+	arr2_sorted = arr2[arr1_indices]
+
+	return(arr1_sorted, arr2_sorted)
 
 #########################################
 ############ Comparing Photos ###########
@@ -111,11 +170,12 @@ ax2.set_zlabel("Value")
 # 1. Randomly select k cluster centroids       							### Done					
 # 2. Assign each data point to the nearest centroid to form clusters	### Done
 # 3. Recalculate centroid by averaging points (update step)				### Done
-# 4. Repeat until convergence
+# 4. Repeat until convergence											### Done
 
-### Note: maybe add a function to maximize the distance between centroids in hue space ###
-### Are there any existing algorithms that do this efficiently? ###
-### This may end up being problematic for values close to 0 / 180 in the "red" space ###
+# 5. Set cutoff for Euclidean distances to improve color accuracy
+# 6. Farthest point sampling to increase chances of color diversity
+# 7. Final color palette should exclude color of similar hues (?)
+# 8. Deal with reds (hue circle freq discrimination?)
 
 # image_array is the 1% reduced image (shape = h(pixels) x w(pixels) x 3(color channels))
 
@@ -132,26 +192,54 @@ def reshape_image(image_array):
 
 # Plotting histogram of Hues in the image, normal and circular representations
 
-def hue_range(array):
-	image_reshaped = reshape_image(array)[1]
-	hue = image_reshaped[:,0]
+# def hue_range(array):
+# 	image_reshaped = reshape_image(array)[1]
+# 	h = image_reshaped[:,0]
+
+# 	count = np.zeros(180)
+
+# 	for i in range(h.shape[0]):
+# 		for j in range(180):
+# 			if h[i] == j:
+# 				count[j] += 1
+	
+# 	# #plt.scatter(hues_opencv, count, color = 'lightgreen', edgecolor = 'black')
+	
+# 	return(h, count)
+
+def hue_range(image_array):
+	image_reshaped = reshape_image(image_array)[1]
+	h = image_reshaped[:,0]
 
 	count = np.zeros(180)
 
-	for i in range(hue.shape[0]):
+	for i in range(h.shape[0]):
 		for j in range(180):
-			if hue[i] == j:
+			if h[i] == j:
 				count[j] += 1
-	
+
 	#hues_opencv = np.linspace(0, 179, 180)
 	#plt.scatter(hues_opencv, count, color = 'lightgreen', edgecolor = 'black')
-	#plt.hist(hue,180, color='lightgreen', edgecolor = 'black')
-	#plt.xlabel('Hue')
-	#plt.ylabel('Count')
-	#plt.title('Hue Distribution in Image')
-	#plt.show()
-	
-	return(hue, count)
+	#h_180 = h + 1
+
+	return(h, count)
+
+x_hues = hue_range(hsv_image)[0]
+x_hues_unique = np.unique(x_hues)
+x_hues_255_255 = h_255_255(x_hues_unique)
+x_hues_rgb = convert_colors(x_hues_255_255)
+
+cmap = colors.ListedColormap(x_hues_rgb/255)
+
+# plt.figure()
+
+# n, bins, patches = plt.hist(x_hues_unique,180, color='lightgreen', edgecolor = 'black')
+# plt.xlabel('Hue')
+# plt.ylabel('Count')
+# plt.title('Hue Distribution in Image')
+
+# for p in patches:
+# 	plt.setp(p, 'facecolor',cmap)
 
 def hue_circular_hist(array):
 
@@ -171,6 +259,10 @@ def hue_circular_hist(array):
 
 # Farthest Point Sampling
 def fps(array):
+
+	centroid_360 = array[0,:] * 2
+
+
 	return(None)
 
 # Total random selection of centroids
@@ -249,43 +341,12 @@ def kmc(image_array, num_centroids, centroids):
 
 	return(average_hsv, total_count)
 
-
 ################################################
 ######### Running K-means Clustering ###########
 #########  And Plotting the Results  ###########
 ################################################
 
-def sort_centroids(imfile, num_centroids, total_count):
-	# Flattening the total counts array
-	tot = total_count.reshape(num_centroids)
-
-	# Sorting colors in descending order
-	totals_indices = tot.argsort()
-	sorted_totals = tot[totals_indices[::-1]]
-	sorted_colors = imfile[totals_indices[::-1]]
-
-	return(sorted_colors)
-
-def convert_centroids(average_hsv):
-	average_hsv = average_hsv[:,None,:]
-	array_hsv = average_hsv.astype(np.uint8)
-	array_rgb = cv2.cvtColor(array_hsv, cv2.COLOR_HSV2RGB)
-
-	return(array_rgb)
-
-# Issue discovered: the colors may not be represented correctly as they nowhere near approximate
-# the colors in the image. Need to figure out why that is
-# Perhaps start by looking at whether the HSV values of the pixels selected are actually
-# present in the image
-
-#colors_0 = convert_centroids(centroids_0)
-#plt.figure()
-
-#plt.imshow(colors_0)
-
 # Initiating with random centroid selection
-
-plt.figure()
 
 n_centroids = 10
 # Randomly select first 10 centroids
@@ -296,11 +357,24 @@ centroid_update, totals_array = kmc(hsv_image, n_centroids, centroids_0	)
 for n in range(1, num_iter):
 	centroid_update, totals_array = kmc(hsv_image, n_centroids, centroid_update)
 
-	centroid_rgb =  convert_centroids(centroid_update)
+	centroid_rgb =  convert_colors(centroid_update)
 	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
 
+#plt.imshow(frequent_colors)
 
-plt.imshow(frequent_colors[0:5,:,:])
+Titles = ["Original", "Color Story"]
+images2 = [original_image, frequent_colors] #, edges]
+count = len(images2)
+
+plt.figure()
+
+for i in range(count):
+	plt.subplot(1, len(images2), i+1)
+	plt.title(Titles[i])
+	plt.imshow(images2[i])
+
+plt.tight_layout
+
 
 try:
 	plt.show()
