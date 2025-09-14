@@ -190,23 +190,6 @@ def reshape_image(image_array):
 
 	return(num_pixels, image_reshaped)
 
-# Plotting histogram of Hues in the image, normal and circular representations
-
-# def hue_range(array):
-# 	image_reshaped = reshape_image(array)[1]
-# 	h = image_reshaped[:,0]
-
-# 	count = np.zeros(180)
-
-# 	for i in range(h.shape[0]):
-# 		for j in range(180):
-# 			if h[i] == j:
-# 				count[j] += 1
-	
-# 	# #plt.scatter(hues_opencv, count, color = 'lightgreen', edgecolor = 'black')
-	
-# 	return(h, count)
-
 def hue_range(image_array):
 	image_reshaped = reshape_image(image_array)[1]
 	h = image_reshaped[:,0]
@@ -218,28 +201,25 @@ def hue_range(image_array):
 			if h[i] == j:
 				count[j] += 1
 
-	#hues_opencv = np.linspace(0, 179, 180)
-	#plt.scatter(hues_opencv, count, color = 'lightgreen', edgecolor = 'black')
-	#h_180 = h + 1
-
 	return(h, count)
 
 x_hues = hue_range(hsv_image)[0]
 x_hues_unique = np.unique(x_hues)
 x_hues_255_255 = h_255_255(x_hues_unique)
-x_hues_rgb = convert_colors(x_hues_255_255)
+x_hues_rgb = np.squeeze(convert_colors(x_hues_255_255) / 255)
 
-cmap = colors.ListedColormap(x_hues_rgb/255)
+cmap = colors.ListedColormap(x_hues_rgb)
 
-# plt.figure()
+plt.figure()
 
-# n, bins, patches = plt.hist(x_hues_unique,180, color='lightgreen', edgecolor = 'black')
-# plt.xlabel('Hue')
-# plt.ylabel('Count')
-# plt.title('Hue Distribution in Image')
+n, bins, patches = plt.hist(x_hues,180, color='lightgreen', edgecolor = 'black')
+plt.xlabel('Hue, OpenCV Format')
+plt.ylabel('Count per Hue')
+plt.title('Hue Distribution in Image')
 
-# for p in patches:
-# 	plt.setp(p, 'facecolor',cmap)
+for i, p in enumerate(patches):
+	color = cmap(i / len(patches))
+	plt.setp(p, 'facecolor',color)
 
 def hue_circular_hist(array):
 
@@ -366,6 +346,7 @@ Titles = ["Original", "Color Story"]
 images2 = [original_image, frequent_colors] #, edges]
 count = len(images2)
 
+
 plt.figure()
 
 for i in range(count):
@@ -374,6 +355,7 @@ for i in range(count):
 	plt.imshow(images2[i])
 
 plt.tight_layout
+
 
 
 try:
