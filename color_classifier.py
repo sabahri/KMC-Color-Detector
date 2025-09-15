@@ -51,7 +51,7 @@ original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 # Increasing pixel percentage increases final color accuracy but also runtime
 perc = 0.01
 reduced_image = cv2.resize(original_image, (0,0), fx=perc, fy=perc, interpolation=cv2.INTER_AREA)
-hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
+hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV).astype(np.float32)
 
 #########################################
 ############ Some Useful FXNS ###########
@@ -308,8 +308,8 @@ def euclidean_hsv(image_array, num_centroids, centroids):
 
 	for i in range(num_pixels):
 		for j in range(num_centroids):
-			pix_h = image_reshaped[i][0].astype(np.float32)
-			cent_h = centroids[j][0].astype(np.float32)
+			pix_h = image_reshaped[i][0] #.astype(np.float32)
+			cent_h = centroids[j][0] #.astype(np.float32)
 
 			hue_diff = np.abs(2*(pix_h - cent_h))
 			sat_diff = image_reshaped[i][1] - centroids[j][1]
@@ -351,11 +351,11 @@ def kmc(image_array, num_centroids, centroids):
 
 	min_array = min_array.transpose()
 	total_count = min_array.sum(axis = 1)[:,None]
-	total_count = np.asarray(total_count, dtype='int')
+	total_count = np.asarray(total_count) #, dtype='int')
 
 	average_hsv = (min_array @ image_reshaped) / total_count
 
-	average_hsv = np.asarray(average_hsv, dtype='int')
+	average_hsv = np.asarray(average_hsv) #, dtype='int')
 
 	return(average_hsv, total_count)
 
