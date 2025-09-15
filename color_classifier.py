@@ -288,14 +288,30 @@ def euclidean_hsv(image_array, num_centroids, centroids):
 	return(euclidean)
 '''
 
+# 
 def euclidean_hsv(image_array, num_centroids, centroids):
+
+	# Calculating the L2 norm
+	# Here, Hue is acknowledged as an angular quantity, not linear
+	# This perhaps addresses the issue with red being at the origin (0 = 360)
+
+	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
+	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
+	# num_centroids = 5
+	# centroids.shape = num_centroids x c_channels (5 x 3)
+
+	# Note: num_pixels = image_reshaped.shape[0]
+
 	num_pixels, image_reshaped = reshape_image(image_array)
 
 	euclidean = np.zeros((num_pixels, num_centroids))
 
 	for i in range(num_pixels):
 		for j in range(num_centroids):
-			hue_diff = np.abs(360.0*(image_reshaped[i][0] - centroids[j][0]))
+			pix_h = image_reshaped[i][0].astype(np.float32)
+			cent_h = centroids[j][0].astype(np.float32)
+
+			hue_diff = np.abs(2*(pix_h - cent_h))
 			sat_diff = image_reshaped[i][1] - centroids[j][1]
 			val_diff = image_reshaped[i][2] - centroids[j][2]
 
