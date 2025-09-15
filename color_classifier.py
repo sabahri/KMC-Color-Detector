@@ -19,16 +19,17 @@
 
 ##### The commented numbers are expected results for utah_sunset.jpg
 
-import cv2
-import numpy as np
-import random
-import matplotlib.pyplot as plt
 import sys
+import cv2
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib import colors
 import matplotlib.gridspec as gridspec
+from mpl_toolkits.mplot3d import Axes3D
 
 # Saving all color space conversions into 'flags' variable
 flags = [i for i in dir(cv2) if i.startswith('COLOR_')]
@@ -78,17 +79,6 @@ def h_255_255(hues_array):
 		hues_opencv[i][1:3] = 255
 
 	return(hues_opencv)
-
-# hues_opencv = np.zeros((180,3))
-# for i in range(180):
-# 	hues_opencv[i][0] = i + 1
-# 	hues_opencv[i][1:3] = 255
-
-# all_hues_opencv =  np.zeros((180,3))
-# hues_opencv_rgb = convert_colors(all_hues_opencv) / 255
-
-#def image_rgb(array_hsv):
-#	hues_multi_array = np.zeros((180,3))
 
 def sort_centroids(imfile, num_centroids, total_count):
 	# Flattening the total counts array
@@ -203,6 +193,9 @@ def hue_range(image_array):
 
 	return(h, count)
 
+###############################################################
+# Creating a custom colormap for better histogram visualization
+
 x_hues = hue_range(hsv_image)[0]
 x_hues_unique = np.unique(x_hues)
 x_hues_255_255 = h_255_255(x_hues_unique)
@@ -214,12 +207,14 @@ plt.figure()
 
 n, bins, patches = plt.hist(x_hues,180, color='lightgreen', edgecolor = 'black')
 plt.xlabel('Hue, OpenCV Format')
-plt.ylabel('Count per Hue')
-plt.title('Hue Distribution in Image')
+plt.ylabel('Pixel Count per Hue')
+plt.title('Hue Distribution with Saturation and Value set to 255')
 
 for i, p in enumerate(patches):
 	color = cmap(i / len(patches))
 	plt.setp(p, 'facecolor',color)
+
+################################################################
 
 def hue_circular_hist(array):
 
@@ -230,12 +225,15 @@ def hue_circular_hist(array):
 	count = hue_range(array)[1]
 
 	hue_rad = np.linspace(0, 179, 180) * 2 * np.pi / 180
-	width = 2*np.pi / 360
+	width = 2.5*np.pi / 360
 
-	ax = plt.subplot(111, polar = True)
-	bars = ax.bar(hue_rad, count, width=width, color = 'lightgreen', edgecolor = 'black')
+	ax = plt.subplot(111, polar = True)	
+	bars = ax.bar(hue_rad, count, width=width, color = 'lightgreen')
 
 	plt.title('Circular Representation of Hue Histogram')
+
+# plt.figure()
+# hue_circular_hist(hsv_image)
 
 # Farthest Point Sampling
 def fps(array):
@@ -265,7 +263,9 @@ def init_centroids(image_array, num_centroids):
 
 	return(indices, random_centroids)
 
-def euclidean_pixels(image_array, num_centroids, centroids):
+# Should Euclidean distance be calculated in RGB or HSV? Is there a difference?
+'''
+def euclidean_hsv(image_array, num_centroids, centroids):
 
 	# Calculating the L2 norm
 
@@ -283,6 +283,28 @@ def euclidean_pixels(image_array, num_centroids, centroids):
 		for j in range(num_centroids):
 			euclidean[i,j] = np.linalg.norm(image_reshaped[i] - centroids[j])
 
+	#print(np.min(euclidean))
+	#print(np.max(euclidean))
+	return(euclidean)
+'''
+
+def euclidean_hsv(image_array, num_centroids, centroids):
+	num_pixels, image_reshaped = reshape_image(image_array)
+
+	euclidean = np.zeros((num_pixels, num_centroids))
+
+	for i in range(num_pixels):
+		for j in range(num_centroids):
+			hue_diff = np.abs(360.0*(image_reshaped[i][0] - centroids[j][0]))
+			sat_diff = image_reshaped[i][1] - centroids[j][1]
+			val_diff = image_reshaped[i][2] - centroids[j][2]
+
+			delta_hue = min(hue_diff, 360.0 - hue_diff) / 180.0
+			delta_sat = np.abs(sat_diff) / 255
+			delta_val = np.abs(val_diff) / 255
+
+			euclidean[i,j] = np.sqrt(delta_hue*delta_hue + delta_sat*delta_sat + delta_val*delta_val)
+
 	return(euclidean)
 
 def kmc(image_array, num_centroids, centroids):
@@ -292,7 +314,7 @@ def kmc(image_array, num_centroids, centroids):
 	num_pixels, image_reshaped = reshape_image(image_array)
 
 	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
-	euclidean = euclidean_pixels(image_array, num_centroids, centroids)
+	euclidean = euclidean_hsv(image_array, num_centroids, centroids)
 	min_array = np.zeros((num_pixels, num_centroids))
 
 	# Creating a min_array "mask": ones and zeros matrix to locate
@@ -346,7 +368,6 @@ Titles = ["Original", "Color Story"]
 images2 = [original_image, frequent_colors] #, edges]
 count = len(images2)
 
-
 plt.figure()
 
 for i in range(count):
@@ -355,8 +376,6 @@ for i in range(count):
 	plt.imshow(images2[i])
 
 plt.tight_layout
-
-
 
 try:
 	plt.show()
