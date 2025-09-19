@@ -25,6 +25,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+import warnings
 
 from matplotlib import cm
 from matplotlib import colors
@@ -51,7 +52,7 @@ original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 # Increasing pixel percentage increases final color accuracy but also runtime
 perc = 0.01
 reduced_image = cv2.resize(original_image, (0,0), fx=perc, fy=perc, interpolation=cv2.INTER_AREA)
-hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV).astype(np.float32)
+hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
 
 #########################################
 ############ Some Useful FXNS ###########
@@ -59,6 +60,7 @@ hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV).astype(np.float32)
 
 # Converting colors from HSV to RGB for making figures
 def convert_colors(average_hsv):
+	average_hsv = np.asarray(average_hsv, dtype='uint8')
 	# Adding dimension
 	average_hsv = average_hsv[:,None,:]
 	# Convert back to 8 unsigned integer format
@@ -244,13 +246,12 @@ def fps(array):
 	return(None)
 
 # Total random selection of centroids
-# Centroids here are pixels, not hues
+# Centroids here are pixels, not hues, as a proxy for initiating HSV values
 # num_centroids is the number of clusters to aim for (integer)
 def init_centroids(image_array, num_centroids):
 
 	# Reshape 3D array into 2D, with the first dimension being having shape [num_pixels]
-	num_pixels = reshape_image(image_array)[0]
-	image_reshaped = reshape_image(image_array)[1]
+	num_pixels, image_reshaped = reshape_image(image_array)
 
 	# Randomly select location indices in image_array
 	indices = random.sample(range(0, num_pixels), num_centroids)
@@ -261,9 +262,9 @@ def init_centroids(image_array, num_centroids):
 	for i,j in zip(range(num_centroids),indices):
 		random_centroids[i,:] = image_reshaped[j]
 
+	#random_centroids = np.asarray(random_centroids, dtype='int')
 	return(indices, random_centroids)
 
-# Should Euclidean distance be calculated in RGB or HSV? Is there a difference?
 '''
 def euclidean_hsv(image_array, num_centroids, centroids):
 
@@ -288,7 +289,6 @@ def euclidean_hsv(image_array, num_centroids, centroids):
 	return(euclidean)
 '''
 
-# 
 def euclidean_hsv(image_array, num_centroids, centroids):
 
 	# Calculating the L2 norm
@@ -302,12 +302,15 @@ def euclidean_hsv(image_array, num_centroids, centroids):
 
 	# Note: num_pixels = image_reshaped.shape[0]
 
+	#print(centroids)
+
 	num_pixels, image_reshaped = reshape_image(image_array)
 
 	euclidean = np.zeros((num_pixels, num_centroids))
 
 	for i in range(num_pixels):
 		for j in range(num_centroids):
+
 			pix_h = image_reshaped[i][0] #.astype(np.float32)
 			cent_h = centroids[j][0] #.astype(np.float32)
 
@@ -321,6 +324,7 @@ def euclidean_hsv(image_array, num_centroids, centroids):
 
 			euclidean[i,j] = np.sqrt(delta_hue*delta_hue + delta_sat*delta_sat + delta_val*delta_val)
 
+	#print(euclidean)
 	return(euclidean)
 
 def kmc(image_array, num_centroids, centroids):
@@ -331,6 +335,7 @@ def kmc(image_array, num_centroids, centroids):
 
 	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
 	euclidean = euclidean_hsv(image_array, num_centroids, centroids)
+	
 	min_array = np.zeros((num_pixels, num_centroids))
 
 	# Creating a min_array "mask": ones and zeros matrix to locate
@@ -343,21 +348,41 @@ def kmc(image_array, num_centroids, centroids):
 			else:
 				min_array[i,j] = 0
 
+
 	# Updating the centroid location
 	# Reminder: centroid is a specific pixel with HSV values
 	# Euclidean distance minimization is looking for pixels with similar HSV values
 	# When we select a new centroid, we want to updated the average HSV values, 
 	# not pixel location
 
-	min_array = min_array.transpose()
-	total_count = min_array.sum(axis = 1)[:,None]
-	total_count = np.asarray(total_count) #, dtype='int')
+	# ISSUES:
+	# Total count sum should be 972, but sometimes it is more
+	# Average hsv array occasionally has NaNs in it, possibly due to entries with count 0
+	# Which is leading to the runtime overflow errors
+	# It might be working correctly if a centroid is no longer a valid representation of the image colors
+	# In which case, delete or replace the centroid by another random guess
 
-	average_hsv = (min_array @ image_reshaped) / total_count
+	# min_array = min_array.transpose()					# 5 x 972
+	# total_count = np.sum(min_array, axis=1)[:,None]		# 5 x 1
 
-	average_hsv = np.asarray(average_hsv) #, dtype='int')
+	total_count = np.sum(min_array, axis=0)[None,:]		# 1 x 5
 
-	return(average_hsv, total_count)
+	zero_count = []
+
+	for i in range(total_count.shape[1]):
+		if total_count[0,i] == 0.:
+			zero_count.append(i)
+
+	if len(zero_count) != 0:
+		for i in zero_count:
+			total_count = np.delete(total_count, i)[None,:]
+			min_array = np.delete(min_array, i, 1)
+			num_centroids = num_centroids - 1
+
+	print("number of centroids:", num_centroids)
+	average_hsv = (min_array.transpose() @ image_reshaped) / total_count.transpose()
+
+	return(average_hsv, total_count, num_centroids)
 
 ################################################
 ######### Running K-means Clustering ###########
@@ -370,18 +395,16 @@ n_centroids = 10
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
-centroid_update, totals_array = kmc(hsv_image, n_centroids, centroids_0	)
+centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroids_0)
 
-for n in range(1, num_iter):
-	centroid_update, totals_array = kmc(hsv_image, n_centroids, centroid_update)
-
+#for n in range(num_iter):
+for n in range(num_iter):
+	centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroid_update)
 	centroid_rgb =  convert_colors(centroid_update)
 	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
 
-#plt.imshow(frequent_colors)
-
 Titles = ["Original", "Color Story"]
-images2 = [original_image, frequent_colors] #, edges]
+images2 = [original_image, frequent_colors]
 count = len(images2)
 
 plt.figure()
