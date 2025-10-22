@@ -26,6 +26,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import warnings
+import math
 
 from matplotlib import cm
 from matplotlib import colors
@@ -287,7 +288,7 @@ def euclidean_hsv(image_array, num_centroids, centroids):
 	#print(np.min(euclidean))
 	#print(np.max(euclidean))
 	return(euclidean)
-'''
+
 
 def euclidean_hsv(image_array, num_centroids, centroids):
 
@@ -322,10 +323,35 @@ def euclidean_hsv(image_array, num_centroids, centroids):
 			delta_sat = np.abs(sat_diff) / 255
 			delta_val = np.abs(val_diff) / 255
 
-			euclidean[i,j] = np.sqrt(delta_hue*delta_hue + delta_sat*delta_sat + delta_val*delta_val)
+			euclidean[i,j] = math.sqrt(delta_hue*delta_hue + delta_sat*delta_sat + delta_val*delta_val)
 
 	#print(euclidean)
 	return(euclidean)
+'''
+
+def distance_hsv(image_array, num_centroids, centroids):
+	num_pixels, image_reshaped = reshape_image(image_array)
+
+	d = np.zeros((num_pixels, num_centroids))
+
+	for i in range(num_pixels):
+		for j in range(num_centroids):
+			h1, s1, v1 = image_reshaped[i] #.astype(np.float32)
+			h2, s2, v2 = centroids[j] #.astype(np.float32)
+
+			hue_diff = np.abs(2*(h1 - h2))
+			theta = hue_diff * np.pi / 180
+
+			s1 = s1/255
+			s2 = s2/255
+			v1 = v1/255
+			v2 = v2/255
+
+			d[i,j] = s1**2 + s2**2 - 2*s1*s2*math.cos(theta) + (v1 - v2)**2
+			#print(d)
+			d[i,j] = math.sqrt(d[i,j])
+
+	return(d)
 
 def kmc(image_array, num_centroids, centroids):
 
@@ -334,8 +360,9 @@ def kmc(image_array, num_centroids, centroids):
 	num_pixels, image_reshaped = reshape_image(image_array)
 
 	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
-	euclidean = euclidean_hsv(image_array, num_centroids, centroids)
-	
+	#euclidean = euclidean_hsv(image_array, num_centroids, centroids)
+	d = distance_hsv(image_array, num_centroids, centroids)
+
 	min_array = np.zeros((num_pixels, num_centroids))
 
 	# Creating a min_array "mask": ones and zeros matrix to locate
@@ -343,11 +370,11 @@ def kmc(image_array, num_centroids, centroids):
 
 	for i in range(num_pixels):
 		for j in range(num_centroids):
-			if euclidean[i,j] == min(euclidean[i,:]):
+			#if euclidean[i,j] == min(euclidean[i,:]):
+			if d[i,j] == min(d[i,:]):
 				min_array[i,j] = 1
 			else:
 				min_array[i,j] = 0
-
 
 	# Updating the centroid location
 	# Reminder: centroid is a specific pixel with HSV values
@@ -420,6 +447,3 @@ try:
 	plt.show()
 except KeyboardInterrupt:
 	sys.exit(0)
-
-
-
