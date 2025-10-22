@@ -330,28 +330,46 @@ def euclidean_hsv(image_array, num_centroids, centroids):
 '''
 
 def distance_hsv(image_array, num_centroids, centroids):
+
+	# Calculating the L2 norm in cylindrical coordinates
+
+	# d.shape =  num_pixels x num_centroids (972 x 5)
+	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
+	# num_centroids = 5
+	# centroids.shape = num_centroids x c_channels (5 x 3)
+
+	# Note: num_pixels = image_reshaped.shape[0]
 	num_pixels, image_reshaped = reshape_image(image_array)
 
 	d = np.zeros((num_pixels, num_centroids))
 
 	for i in range(num_pixels):
 		for j in range(num_centroids):
-			h1, s1, v1 = image_reshaped[i] #.astype(np.float32)
-			h2, s2, v2 = centroids[j] #.astype(np.float32)
+			h1, s1, v1 = image_reshaped[i]
+			h2, s2, v2 = centroids[j]
 
 			hue_diff = np.abs(2*(h1 - h2))
+			# check this line
+			hue_diff = min(hue_diff, 360.0 - hue_diff) / 180.0
 			theta = hue_diff * np.pi / 180
 
-			s1 = s1/255
-			s2 = s2/255
-			v1 = v1/255
-			v2 = v2/255
+			s1, s2, v1, v2 = s1/255, s2/255, v1/255, v2/255
 
 			d[i,j] = s1**2 + s2**2 - 2*s1*s2*math.cos(theta) + (v1 - v2)**2
 			#print(d)
 			d[i,j] = math.sqrt(d[i,j])
 
 	return(d)
+
+# def distance_hue(image_array, num_centroids, centroids):
+# 	d = np.zeros((num_pixels, num_centroids))
+
+# 	for i in range(num_pixels):
+# 		for j in range(num_centroids):
+# 			h1, h2 = image_reshaped[i], centroids[j]
+
+# 			hue_diff = np.abs(2*(h1 - h2))
+# 			theta = hue_diff * np.pi / 180
 
 def kmc(image_array, num_centroids, centroids):
 
