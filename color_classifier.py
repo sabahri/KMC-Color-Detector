@@ -315,8 +315,8 @@ def kmc(image_array, num_centroids, centroids):
 
 	closest_centroid = np.argmin(d, axis=1) # 1 x num_pixels
 
-	counts = np.bincount(closest_centroid)  # 1 x 5
-
+	counts = np.bincount(closest_centroid, minlength=num_centroids)  # 1 x 5
+	print(counts)
 	sum_hsv = np.zeros((num_centroids,3))
 
 	for i in range(num_centroids):
@@ -351,6 +351,12 @@ for n in range(num_iter):
 	centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroid_update)
 	centroid_rgb =  convert_colors(centroid_update)
 	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
+
+final_count = kmc(hsv_image, n_centroids, centroid_update)[1]
+
+print(final_count)
+print(final_count.sum())
+
 
 Titles = ["Original", "Color Story"]
 images2 = [original_image, frequent_colors]
