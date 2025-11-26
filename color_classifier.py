@@ -266,68 +266,15 @@ def init_centroids(image_array, num_centroids):
 	#random_centroids = np.asarray(random_centroids, dtype='int')
 	return(indices, random_centroids)
 
-'''
-def euclidean_hsv(image_array, num_centroids, centroids):
-
-	# Calculating the L2 norm
-
-	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
-	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
-	# num_centroids = 5
-	# centroids.shape = num_centroids x c_channels (5 x 3)
-
-	# Note: num_pixels = image_reshaped.shape[0]
+def init_single_centroid(image_array):
+	# Reshape 3D array into 2D, with the first dimension being having shape [num_pixels]
 	num_pixels, image_reshaped = reshape_image(image_array)
 
-	euclidean = np.zeros((num_pixels, num_centroids))
+	index = random.randrange(0,num_pixels,1)
 
-	for i in range(num_pixels):
-		for j in range(num_centroids):
-			euclidean[i,j] = np.linalg.norm(image_reshaped[i] - centroids[j])
+	single_centroid = image_reshaped[index]
 
-	#print(np.min(euclidean))
-	#print(np.max(euclidean))
-	return(euclidean)
-
-
-def euclidean_hsv(image_array, num_centroids, centroids):
-
-	# Calculating the L2 norm
-	# Here, Hue is acknowledged as an angular quantity, not linear
-	# This perhaps addresses the issue with red being at the origin (0 = 360)
-
-	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
-	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
-	# num_centroids = 5
-	# centroids.shape = num_centroids x c_channels (5 x 3)
-
-	# Note: num_pixels = image_reshaped.shape[0]
-
-	#print(centroids)
-
-	num_pixels, image_reshaped = reshape_image(image_array)
-
-	euclidean = np.zeros((num_pixels, num_centroids))
-
-	for i in range(num_pixels):
-		for j in range(num_centroids):
-
-			pix_h = image_reshaped[i][0] #.astype(np.float32)
-			cent_h = centroids[j][0] #.astype(np.float32)
-
-			hue_diff = np.abs(2*(pix_h - cent_h))
-			sat_diff = image_reshaped[i][1] - centroids[j][1]
-			val_diff = image_reshaped[i][2] - centroids[j][2]
-
-			delta_hue = min(hue_diff, 360.0 - hue_diff) / 180.0
-			delta_sat = np.abs(sat_diff) / 255
-			delta_val = np.abs(val_diff) / 255
-
-			euclidean[i,j] = math.sqrt(delta_hue*delta_hue + delta_sat*delta_sat + delta_val*delta_val)
-
-	#print(euclidean)
-	return(euclidean)
-'''
+	return(single_centroid)
 
 def distance_hsv(image_array, num_centroids, centroids):
 
@@ -349,85 +296,42 @@ def distance_hsv(image_array, num_centroids, centroids):
 			h2, s2, v2 = centroids[j]
 
 			hue_diff = np.abs(2*(h1 - h2))
-			# check this line
-			hue_diff = min(hue_diff, 360.0 - hue_diff) / 180.0
 			theta = hue_diff * np.pi / 180
 
 			s1, s2, v1, v2 = s1/255, s2/255, v1/255, v2/255
-
 			d[i,j] = s1**2 + s2**2 - 2*s1*s2*math.cos(theta) + (v1 - v2)**2
-			#print(d)
+
 			d[i,j] = math.sqrt(d[i,j])
 
 	return(d)
-
-# def distance_hue(image_array, num_centroids, centroids):
-# 	d = np.zeros((num_pixels, num_centroids))
-
-# 	for i in range(num_pixels):
-# 		for j in range(num_centroids):
-# 			h1, h2 = image_reshaped[i], centroids[j]
-
-# 			hue_diff = np.abs(2*(h1 - h2))
-# 			theta = hue_diff * np.pi / 180
 
 def kmc(image_array, num_centroids, centroids):
 
 	# num_pixels = 972
 	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
+	# d.shape =  num_pixels x num_centroids (972 x 5)
 	num_pixels, image_reshaped = reshape_image(image_array)
-
-	# euclidean.shape =  num_pixels x num_centroids (972 x 5)
-	#euclidean = euclidean_hsv(image_array, num_centroids, centroids)
 	d = distance_hsv(image_array, num_centroids, centroids)
 
-	min_array = np.zeros((num_pixels, num_centroids))
+	closest_centroid = np.argmin(d, axis=1) # 1 x num_pixels
 
-	# Creating a min_array "mask": ones and zeros matrix to locate
-	# closest centroid
+	counts = np.bincount(closest_centroid)  # 1 x 5
 
-	for i in range(num_pixels):
-		for j in range(num_centroids):
-			#if euclidean[i,j] == min(euclidean[i,:]):
-			if d[i,j] == min(d[i,:]):
-				min_array[i,j] = 1
-			else:
-				min_array[i,j] = 0
+	sum_hsv = np.zeros((num_centroids,3))
 
-	# Updating the centroid location
-	# Reminder: centroid is a specific pixel with HSV values
-	# Euclidean distance minimization is looking for pixels with similar HSV values
-	# When we select a new centroid, we want to updated the average HSV values, 
-	# not pixel location
+	for i in range(num_centroids):
+		for j in range(image_reshaped.shape[0]):
+			if closest_centroid[j] == i:
+				sum_hsv[i,:] += image_reshaped[j]
 
-	# ISSUES:
-	# Total count sum should be 972, but sometimes it is more
-	# Average hsv array occasionally has NaNs in it, possibly due to entries with count 0
-	# Which is leading to the runtime overflow errors
-	# It might be working correctly if a centroid is no longer a valid representation of the image colors
-	# In which case, delete or replace the centroid by another random guess
+	for k in range(num_centroids):
+		if counts[k] == 0:
+			sum_hsv[k,:] = init_single_centroid(image_array)
+			counts[k] = 1
 
-	# min_array = min_array.transpose()					# 5 x 972
-	# total_count = np.sum(min_array, axis=1)[:,None]		# 5 x 1
+	average_hsv = sum_hsv / counts[:,None]
 
-	total_count = np.sum(min_array, axis=0)[None,:]		# 1 x 5
-
-	zero_count = []
-
-	for i in range(total_count.shape[1]):
-		if total_count[0,i] == 0.:
-			zero_count.append(i)
-
-	if len(zero_count) != 0:
-		for i in zero_count:
-			total_count = np.delete(total_count, i)[None,:]
-			min_array = np.delete(min_array, i, 1)
-			num_centroids = num_centroids - 1
-
-	print("number of centroids:", num_centroids)
-	average_hsv = (min_array.transpose() @ image_reshaped) / total_count.transpose()
-
-	return(average_hsv, total_count, num_centroids)
+	return(average_hsv, counts, num_centroids)
 
 ################################################
 ######### Running K-means Clustering ###########
@@ -436,7 +340,7 @@ def kmc(image_array, num_centroids, centroids):
 
 # Initiating with random centroid selection
 
-n_centroids = 10
+n_centroids = 7
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
