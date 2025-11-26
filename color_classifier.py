@@ -224,7 +224,7 @@ def hue_circular_hist(array):
 	# note, in OpenCV the hue range is from 0 to 180
 	# so all hue values must be doubled to fit onto a cylindrical plot
 
-	hue = hue_range(array)[0] * 2
+	hues = hue_range(array)[0] * 2
 	count = hue_range(array)[1]
 
 	hue_rad = np.linspace(0, 179, 180) * 2 * np.pi / 180
@@ -305,6 +305,15 @@ def distance_hsv(image_array, num_centroids, centroids):
 
 	return(d)
 
+def circular_mean(hues):
+	hues = 2*hues * np.pi/180	# radians
+	sin_sum = sum([math.sin(h) for h in hues])
+	cos_sum = sum([math.cos(h) for h in hues])
+
+	mean_hues = math.atan2(sun_sum, cos_sum) / 2
+
+	return(mean_hues)
+
 def kmc(image_array, num_centroids, centroids):
 
 	# num_pixels = 972
@@ -316,20 +325,36 @@ def kmc(image_array, num_centroids, centroids):
 	closest_centroid = np.argmin(d, axis=1) # 1 x num_pixels
 
 	counts = np.bincount(closest_centroid, minlength=num_centroids)  # 1 x 5
-	print(counts)
-	sum_hsv = np.zeros((num_centroids,3))
 
-	for i in range(num_centroids):
-		for j in range(image_reshaped.shape[0]):
-			if closest_centroid[j] == i:
-				sum_hsv[i,:] += image_reshaped[j]
+	centroids_hues = []
+	for c in counts:
+		centroids_hues.append([0] * c)
+	
+	#centroids_hues = np.array(centroids_hues)
 
-	for k in range(num_centroids):
-		if counts[k] == 0:
-			sum_hsv[k,:] = init_single_centroid(image_array)
-			counts[k] = 1
+	for i in range(closest_centroid.shape[0]):
+		for cc in counts:
+			centroids_hues[]
 
-	average_hsv = sum_hsv / counts[:,None]
+	#sum_sv = np.zeros((num_centroids,2))
+
+	# sum_hsv = np.zeros((num_centroids,3))	# 5 x 3
+
+	# for i in range(num_centroids):
+	# 	for j in range(image_reshaped.shape[0]):
+	# 		if closest_centroid[j] == i:
+	# 			sum_hsv[i,:] += image_reshaped[j]
+
+
+	# for k in range(num_centroids):
+	# 	if counts[k] == 0:
+	# 		sum_hsv[k,:] = init_single_centroid(image_array)
+	# 		counts[k] = 1
+
+	# average_hsv = np.zeros((5,3))
+	# average_hsv[:,-2:] = sum_hsv[:,-2:] / counts[:,None][:,-2:] 		# 5 x 3
+	# average_hsv[0,:] = circular_mean()
+
 
 	return(average_hsv, counts, num_centroids)
 
@@ -340,7 +365,7 @@ def kmc(image_array, num_centroids, centroids):
 
 # Initiating with random centroid selection
 
-n_centroids = 7
+n_centroids = 20
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
@@ -351,12 +376,6 @@ for n in range(num_iter):
 	centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroid_update)
 	centroid_rgb =  convert_colors(centroid_update)
 	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
-
-final_count = kmc(hsv_image, n_centroids, centroid_update)[1]
-
-print(final_count)
-print(final_count.sum())
-
 
 Titles = ["Original", "Color Story"]
 images2 = [original_image, frequent_colors]
