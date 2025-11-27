@@ -307,10 +307,10 @@ def distance_hsv(image_array, num_centroids, centroids):
 
 def circular_mean(hues):
 	hues = 2*hues * np.pi/180	# radians
-	sin_sum = sum([math.sin(h) for h in hues])
-	cos_sum = sum([math.cos(h) for h in hues])
+	sin_sum = np.sum([np.sin(h) for h in hues])
+	cos_sum = np.sum([np.cos(h) for h in hues])
 
-	mean_hues = math.atan2(sun_sum, cos_sum) / 2
+	mean_hues = np.atan2(sin_sum, cos_sum)
 
 	return(mean_hues)
 
@@ -326,35 +326,32 @@ def kmc(image_array, num_centroids, centroids):
 
 	counts = np.bincount(closest_centroid, minlength=num_centroids)  # 1 x 5
 
-	centroids_hues = []
-	for c in counts:
-		centroids_hues.append([0] * c)
+	average_h = np.zeros((num_centroids, 1))
+
+	for i in range(num_centroids):				# 5
+		close_hues = []
+		for cc in range(num_pixels):		# 900
+			if closest_centroid[cc] == i:
+				close_hues.append(image_reshaped[cc][0])
+
+		average_h[i] = circular_mean(np.array(close_hues))
+
+
+	average_sv = np.zeros((num_centroids, 2))
+
+	for i in range(num_centroids):
+		for j in range(image_reshaped.shape[0]):
+			if closest_centroid[j] == i:
+				average_sv[i,:] += image_reshaped[j,-2:]
+
+	average_hsv = np.hstack([average_h, average_sv])
+
+	for k in range(num_centroids):
+		if counts[k] == 0:
+			average_hsv[k,:] = init_single_centroid(image_array)
+			counts[k] = 1
 	
-	#centroids_hues = np.array(centroids_hues)
-
-	for i in range(closest_centroid.shape[0]):
-		for cc in counts:
-			centroids_hues[]
-
-	#sum_sv = np.zeros((num_centroids,2))
-
-	# sum_hsv = np.zeros((num_centroids,3))	# 5 x 3
-
-	# for i in range(num_centroids):
-	# 	for j in range(image_reshaped.shape[0]):
-	# 		if closest_centroid[j] == i:
-	# 			sum_hsv[i,:] += image_reshaped[j]
-
-
-	# for k in range(num_centroids):
-	# 	if counts[k] == 0:
-	# 		sum_hsv[k,:] = init_single_centroid(image_array)
-	# 		counts[k] = 1
-
-	# average_hsv = np.zeros((5,3))
-	# average_hsv[:,-2:] = sum_hsv[:,-2:] / counts[:,None][:,-2:] 		# 5 x 3
-	# average_hsv[0,:] = circular_mean()
-
+	average_sv = average_sv / counts[:,None]
 
 	return(average_hsv, counts, num_centroids)
 
