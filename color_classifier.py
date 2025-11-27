@@ -306,11 +306,16 @@ def distance_hsv(image_array, num_centroids, centroids):
 	return(d)
 
 def circular_mean(hues):
-	hues = 2*hues * np.pi/180	# radians
+
+	hues = 2 * hues * np.pi/180	# radians
 	sin_sum = np.sum([np.sin(h) for h in hues])
 	cos_sum = np.sum([np.cos(h) for h in hues])
 
-	mean_hues = np.atan2(sin_sum, cos_sum)
+	mean_hues = np.atan2(sin_sum, cos_sum) * 180/(2 * np.pi)
+
+	# atan2 gives us angles in the -90 -- 90 range. 
+	# Add 90 to go from 0 -- 180
+	mean_hues = (mean_hues + 180) % 180
 
 	return(mean_hues)
 
@@ -328,30 +333,30 @@ def kmc(image_array, num_centroids, centroids):
 
 	average_h = np.zeros((num_centroids, 1))
 
-	for i in range(num_centroids):				# 5
+	for i in range(num_centroids):				
 		close_hues = []
-		for cc in range(num_pixels):		# 900
+		for cc in range(num_pixels):		
 			if closest_centroid[cc] == i:
 				close_hues.append(image_reshaped[cc][0])
 
 		average_h[i] = circular_mean(np.array(close_hues))
 
 
-	average_sv = np.zeros((num_centroids, 2))
+	sum_sv = np.zeros((num_centroids, 2))
 
-	for i in range(num_centroids):
-		for j in range(image_reshaped.shape[0]):
-			if closest_centroid[j] == i:
-				average_sv[i,:] += image_reshaped[j,-2:]
+	for j in range(num_centroids):
+		for k in range(image_reshaped.shape[0]):
+			if closest_centroid[k] == j:
+				sum_sv[j,:] += image_reshaped[k,-2:]
 
-	average_hsv = np.hstack([average_h, average_sv])
+	average_hsv = np.hstack([average_h, sum_sv])
 
-	for k in range(num_centroids):
-		if counts[k] == 0:
-			average_hsv[k,:] = init_single_centroid(image_array)
-			counts[k] = 1
-	
-	average_sv = average_sv / counts[:,None]
+	for n in range(num_centroids):
+		if counts[n] == 0:
+			average_hsv[n,:] = init_single_centroid(image_array)
+			counts[n] = 1
+
+	average_hsv[:,-2:] = average_hsv[:,-2:]/counts[:,None]
 
 	return(average_hsv, counts, num_centroids)
 
@@ -362,7 +367,7 @@ def kmc(image_array, num_centroids, centroids):
 
 # Initiating with random centroid selection
 
-n_centroids = 20
+n_centroids = 10
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
@@ -373,6 +378,7 @@ for n in range(num_iter):
 	centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroid_update)
 	centroid_rgb =  convert_colors(centroid_update)
 	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
+	print(centroid_update)
 
 Titles = ["Original", "Color Story"]
 images2 = [original_image, frequent_colors]
