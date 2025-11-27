@@ -296,6 +296,9 @@ def distance_hsv(image_array, num_centroids, centroids):
 			h2, s2, v2 = centroids[j]
 
 			hue_diff = np.abs(2*(h1 - h2))
+			
+			# wraparound
+			hue_diff = min(hue_diff, 360 - hue_diff)
 			theta = hue_diff * np.pi / 180
 
 			s1, s2, v1, v2 = s1/255, s2/255, v1/255, v2/255
@@ -378,7 +381,6 @@ for n in range(num_iter):
 	centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroid_update)
 	centroid_rgb =  convert_colors(centroid_update)
 	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
-	print(centroid_update)
 
 Titles = ["Original", "Color Story"]
 images2 = [original_image, frequent_colors]
