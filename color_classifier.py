@@ -296,7 +296,7 @@ def distance_hsv(image_array, num_centroids, centroids):
 			h2, s2, v2 = centroids[j]
 
 			hue_diff = np.abs(2*(h1 - h2))
-			
+
 			# wraparound
 			hue_diff = min(hue_diff, 360 - hue_diff)
 			theta = hue_diff * np.pi / 180
@@ -314,13 +314,15 @@ def circular_mean(hues):
 	sin_sum = np.sum([np.sin(h) for h in hues])
 	cos_sum = np.sum([np.cos(h) for h in hues])
 
-	mean_hues = np.atan2(sin_sum, cos_sum) * 180/(2 * np.pi)
 
-	# atan2 gives us angles in the -90 -- 90 range. 
-	# Add 90 to go from 0 -- 180
-	mean_hues = (mean_hues + 180) % 180
+	# Returns values from -180 to 180
+	mean_hues = np.atan2(sin_sum, cos_sum) * 180/(np.pi)
 
-	return(mean_hues)
+	# Returns values from 0 to 360
+	if mean_hues < 0:
+		mean_hues = mean_hues + 360
+
+	return(mean_hues/2)
 
 def kmc(image_array, num_centroids, centroids):
 
