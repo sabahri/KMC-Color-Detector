@@ -377,7 +377,7 @@ def kmc(image_array, num_centroids, centroids):
 
 # Initiating with random centroid selection
 
-n_centroids = 10
+n_centroids = 20
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
@@ -394,7 +394,7 @@ for color in frequent_colors:
 	hex_color.append(matplotlib.colors.to_hex(color / 255))
 
 Titles = ["Original", "Color Story"]
-images2 = [original_image, frequent_colors]
+images2 = [reduced_image,frequent_colors]
 count = len(images2)
 
 plt.figure()
@@ -402,10 +402,20 @@ plt.figure()
 for i in range(count):
 	plt.subplot(1, len(images2), i+1)
 	plt.title(Titles[i])
+	if Titles[i] == "Color Story":
+		plt.subplot(projection = 'polar')
+
 	plt.imshow(images2[i])
 
 	if Titles[i] == "Color Story":
-		plt.yticks(range(n_centroids), hex_color)
+		radius = np.arange(0,2,0.01)
+		circum = 2 * np.pi * radius
+		plt.plot(circum, radius)
+		ax = plt.gca()
+		ax.set_rmax(2)
+		ax.set_rlabel_position(-22.5)
+		ax.grid(True)
+		#plt.yticks(range(n_centroids), hex_color)
 
 plt.tight_layout
 
