@@ -213,7 +213,7 @@ cmap = colors.ListedColormap(x_hues_rgb)
 
 plt.figure()
 
-n, bins, patches = plt.hist(x_hues,180, color='lightgreen', edgecolor = 'black')
+n, bins, patches = plt.hist(x_hues,180, edgecolor = 'black')
 plt.xlabel('Hue, OpenCV Format')
 plt.ylabel('Pixel Count per Hue')
 plt.title('Hue Distribution with Saturation and Value set to 255')
@@ -377,7 +377,7 @@ def kmc(image_array, num_centroids, centroids):
 
 # Initiating with random centroid selection
 
-n_centroids = 20
+n_centroids = 30
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
@@ -399,24 +399,25 @@ count = len(images2)
 
 plt.figure()
 
+#cmap = colors.ListedColormap(frequent_colors / 255)
+
 for i in range(count):
-	plt.subplot(1, len(images2), i+1)
-	plt.title(Titles[i])
 	if Titles[i] == "Color Story":
-		plt.subplot(projection = 'polar')
-
-	plt.imshow(images2[i])
-
-	if Titles[i] == "Color Story":
-		radius = np.arange(0,2,0.01)
-		circum = 2 * np.pi * radius
-		plt.plot(circum, radius)
+		plt.subplot(1, len(images2), i+1, projection = 'polar')
+		radius = centroid_update[:,1] / 255	# saturation
+		angle = centroid_update[:,0] * 2 * np.pi/180
 		ax = plt.gca()
-		ax.set_rmax(2)
-		ax.set_rlabel_position(-22.5)
-		ax.grid(True)
-		#plt.yticks(range(n_centroids), hex_color)
+		ax.scatter(angle, radius, c=centroid_rgb/255, s=100, edgecolor='k', alpha=1, zorder=2)
+		ax.grid(zorder=1)
 
+	else:
+		plt.subplot(1, len(images2), i+1)
+		plt.imshow(images2[i])
+
+	plt.title(Titles[i])
+
+
+		#plt.yticks(range(n_centroids), hex_color)
 plt.tight_layout
 
 try:
