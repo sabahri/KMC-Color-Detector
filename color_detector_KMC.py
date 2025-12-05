@@ -317,6 +317,7 @@ def distance_hsv(image_array, num_centroids, centroids):
 def circular_mean(hues):
 
 	#print(hues)
+	hues = hues.astype(float)
 
 	hues = 2 * hues * np.pi/180	# radians
 	sin_sum = np.sum([np.sin(h) for h in hues])
@@ -332,7 +333,6 @@ def circular_mean(hues):
 
 	mean_hues = mean_hues / 2
 
-	print(mean_hues)
 	return(mean_hues)
 
 def kmc(image_array, num_centroids, centroids):
@@ -354,8 +354,10 @@ def kmc(image_array, num_centroids, centroids):
 		for cc in range(num_pixels):		
 			if closest_centroid[cc] == i:
 				close_hues.append(image_reshaped[cc][0])
-				print(close_hues)
 
+		if len(close_hues) > 0:
+			average_h[i] = circular_mean(np.array(close_hues))
+	
 	sum_sv = np.zeros((num_centroids, 2))
 
 	for j in range(num_centroids):
@@ -381,7 +383,7 @@ def kmc(image_array, num_centroids, centroids):
 
 # Initiating with random centroid selection
 
-n_centroids = 5
+n_centroids = 20
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
@@ -413,7 +415,7 @@ for i in range(count):
 		#z = centroid_update[:,2]
 		ax = plt.gca()
 		ax.scatter(angle, radius, c=centroid_rgb/255, s=200, edgecolor='k', lw = 0.25, alpha=1, zorder=2)
-		#ax.set_rmax(1)
+		ax.set_rmax(1)
 		ax.grid(zorder=1)
 	else:
 		plt.subplot(1, len(images3), i+1)
