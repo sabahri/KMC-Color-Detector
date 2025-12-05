@@ -205,23 +205,23 @@ def hue_range(image_array):
 ###############################################################
 # Creating a custom colormap for better histogram visualization
 
-# x_hues = hue_range(hsv_image)[0]
-# x_hues_unique = np.unique(x_hues)
-# x_hues_255_255 = h_255_255(x_hues_unique)
-# x_hues_rgb = np.squeeze(convert_colors(x_hues_255_255) / 255)
+x_hues = hue_range(hsv_image)[0]
+x_hues_unique = np.unique(x_hues)
+x_hues_255_255 = h_255_255(x_hues_unique)
+x_hues_rgb = np.squeeze(convert_colors(x_hues_255_255) / 255)
 
-# cmap = colors.ListedColormap(x_hues_rgb)
+cmap = colors.ListedColormap(x_hues_rgb)
 
-# plt.figure()
+plt.figure()
 
-# n, bins, patches = plt.hist(x_hues,180, edgecolor = 'black')
-# plt.xlabel('Hue, OpenCV Format')
-# plt.ylabel('Pixel Count per Hue')
-# plt.title('Hue Distribution with Saturation and Value set to 255')
+n, bins, patches = plt.hist(x_hues,180, edgecolor = 'black')
+plt.xlabel('Hue, OpenCV Format')
+plt.ylabel('Pixel Count per Hue')
+plt.title('Hue Distribution with Saturation and Value set to 255')
 
-# for i, p in enumerate(patches):
-# 	color = cmap(i / len(patches))
-# 	plt.setp(p, 'facecolor',color)
+for i, p in enumerate(patches):
+	color = cmap(i / len(patches))
+	plt.setp(p, 'facecolor',color)
 
 ################################################################
 
@@ -316,6 +316,8 @@ def distance_hsv(image_array, num_centroids, centroids):
 
 def circular_mean(hues):
 
+	#print(hues)
+
 	hues = 2 * hues * np.pi/180	# radians
 	sin_sum = np.sum([np.sin(h) for h in hues])
 	cos_sum = np.sum([np.cos(h) for h in hues])
@@ -328,7 +330,10 @@ def circular_mean(hues):
 	if mean_hues < 0:
 		mean_hues = mean_hues + 360
 
-	return(mean_hues/2)
+	mean_hues = mean_hues / 2
+
+	print(mean_hues)
+	return(mean_hues)
 
 def kmc(image_array, num_centroids, centroids):
 
@@ -349,9 +354,7 @@ def kmc(image_array, num_centroids, centroids):
 		for cc in range(num_pixels):		
 			if closest_centroid[cc] == i:
 				close_hues.append(image_reshaped[cc][0])
-
-		average_h[i] = circular_mean(np.array(close_hues))
-
+				print(close_hues)
 
 	sum_sv = np.zeros((num_centroids, 2))
 
@@ -378,7 +381,7 @@ def kmc(image_array, num_centroids, centroids):
 
 # Initiating with random centroid selection
 
-n_centroids = 15
+n_centroids = 5
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
@@ -388,15 +391,16 @@ hex_color = []
 #for n in range(num_iter):
 for n in range(num_iter):
 	centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroid_update)
+	#print(centroid_update)
 	centroid_rgb =  convert_colors(centroid_update)
 	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
 	sorted_colors = sort_hue(centroid_update, centroid_rgb)
 
-for color in frequent_colors:
+for color in sorted_colors:
 	hex_color.append(matplotlib.colors.to_hex(color / 255))
 
-Titles = ["Original", "Color Story", "Polar Color Story"]
-images3 = [reduced_image,sorted_colors, centroid_update]
+Titles = ["Original", "Reduced Image", "Color Story", "Polar Color Story"]
+images3 = [original_image, reduced_image, sorted_colors, centroid_update]
 count = len(images3)
 
 plt.figure()
@@ -406,8 +410,10 @@ for i in range(count):
 		plt.subplot(1, len(images3), i+1, projection = 'polar')
 		radius = centroid_update[:,1] / 255	# saturation
 		angle = centroid_update[:,0] * 2 * np.pi/180
+		#z = centroid_update[:,2]
 		ax = plt.gca()
-		ax.scatter(angle, radius, c=centroid_rgb/255, s=100, edgecolor='k', alpha=1, zorder=2)
+		ax.scatter(angle, radius, c=centroid_rgb/255, s=200, edgecolor='k', lw = 0.25, alpha=1, zorder=2)
+		#ax.set_rmax(1)
 		ax.grid(zorder=1)
 	else:
 		plt.subplot(1, len(images3), i+1)
