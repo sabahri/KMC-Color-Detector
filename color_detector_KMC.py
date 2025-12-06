@@ -25,6 +25,7 @@ import random
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gs
 from scipy.optimize import curve_fit
 import warnings
 import math
@@ -40,7 +41,7 @@ flags = [i for i in dir(cv2) if i.startswith('COLOR_')]
 # Specify number of iterations to use for K-means cluster algorithm
 # Import image from path file and convert from BGR to RGB format
 
-num_iter = int(sys.argv[1])
+n_centroids = int(sys.argv[1])
 input_image = sys.argv[2]
 
 original_image = cv2.imread(input_image)
@@ -103,10 +104,6 @@ def sort_hue(average_hsv, average_rgb):
 	sorted_hues = average_hsv[hue_indices[::-1]]
 	sorted_hues_rgb = average_rgb[hue_indices[::-1]]
 	return(sorted_hues_rgb)
-
-def rgb_to_hex(rgb):
-	#print(rgb)
-	return('%02x%02x%02x' % rgb)
 
 #########################################
 ############ Comparing Photos ###########
@@ -205,23 +202,23 @@ def hue_range(image_array):
 ###############################################################
 # Creating a custom colormap for better histogram visualization
 
-x_hues = hue_range(hsv_image)[0]
-x_hues_unique = np.unique(x_hues)
-x_hues_255_255 = h_255_255(x_hues_unique)
-x_hues_rgb = np.squeeze(convert_colors(x_hues_255_255) / 255)
+# x_hues = hue_range(hsv_image)[0]
+# x_hues_unique = np.unique(x_hues)
+# x_hues_255_255 = h_255_255(x_hues_unique)
+# x_hues_rgb = np.squeeze(convert_colors(x_hues_255_255) / 255)
 
-cmap = colors.ListedColormap(x_hues_rgb)
+# cmap = colors.ListedColormap(x_hues_rgb)
 
-plt.figure()
+# plt.figure()
 
-n, bins, patches = plt.hist(x_hues,180, edgecolor = 'black')
-plt.xlabel('Hue, OpenCV Format')
-plt.ylabel('Pixel Count per Hue')
-plt.title('Hue Distribution with Saturation and Value set to 255')
+# n, bins, patches = plt.hist(x_hues,180, edgecolor = 'black')
+# plt.xlabel('Hue, OpenCV Format')
+# plt.ylabel('Pixel Count per Hue')
+# plt.title('Hue Distribution with Saturation and Value set to 255')
 
-for i, p in enumerate(patches):
-	color = cmap(i / len(patches))
-	plt.setp(p, 'facecolor',color)
+# for i, p in enumerate(patches):
+# 	color = cmap(i / len(patches))
+# 	plt.setp(p, 'facecolor',color)
 
 ################################################################
 
@@ -316,7 +313,6 @@ def distance_hsv(image_array, num_centroids, centroids):
 
 def circular_mean(hues):
 
-	#print(hues)
 	hues = hues.astype(float)
 
 	hues = 2 * hues * np.pi/180	# radians
@@ -331,6 +327,7 @@ def circular_mean(hues):
 	if mean_hues < 0:
 		mean_hues = mean_hues + 360
 
+	# Back to OpenCV format
 	mean_hues = mean_hues / 2
 
 	return(mean_hues)
@@ -354,8 +351,7 @@ def kmc(image_array, num_centroids, centroids):
 		for cc in range(num_pixels):		
 			if closest_centroid[cc] == i:
 				close_hues.append(image_reshaped[cc][0])
-
-		if len(close_hues) > 0:
+		if counts[i] > 0:
 			average_h[i] = circular_mean(np.array(close_hues))
 	
 	sum_sv = np.zeros((num_centroids, 2))
@@ -383,17 +379,15 @@ def kmc(image_array, num_centroids, centroids):
 
 # Initiating with random centroid selection
 
-n_centroids = 20
+num_iter = 10
 # Randomly select first 10 centroids
 indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
 centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroids_0)
 hex_color = []
 
-#for n in range(num_iter):
 for n in range(num_iter):
 	centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroid_update)
-	#print(centroid_update)
 	centroid_rgb =  convert_colors(centroid_update)
 	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
 	sorted_colors = sort_hue(centroid_update, centroid_rgb)
@@ -401,30 +395,30 @@ for n in range(num_iter):
 for color in sorted_colors:
 	hex_color.append(matplotlib.colors.to_hex(color / 255))
 
-Titles = ["Original", "Reduced Image", "Color Story", "Polar Color Story"]
-images3 = [original_image, reduced_image, sorted_colors, centroid_update]
-count = len(images3)
+fig = plt.figure()
+gs = gridspec.GridSpec(1,2, wspace=0.05, hspace=1)
 
-plt.figure()
+ax1 = fig.add_subplot(gs[0,0])
+ax1.set_title("Image")
+ax1.imshow(original_image)
 
-for i in range(count):
-	if Titles[i] == "Polar Color Story":
-		plt.subplot(1, len(images3), i+1, projection = 'polar')
-		radius = centroid_update[:,1] / 255	# saturation
-		angle = centroid_update[:,0] * 2 * np.pi/180
-		#z = centroid_update[:,2]
-		ax = plt.gca()
-		ax.scatter(angle, radius, c=centroid_rgb/255, s=200, edgecolor='k', lw = 0.25, alpha=1, zorder=2)
-		ax.set_rmax(1)
-		ax.grid(zorder=1)
-	else:
-		plt.subplot(1, len(images3), i+1)
-		plt.imshow(images3[i])
-	plt.title(Titles[i])
-	if Titles[i] == "Color Story":
-		plt.yticks(range(n_centroids), hex_color)
+ax2 = fig.add_subplot(gs[1,0], projection = 'polar')
+radius = centroid_update[:,1] / 255	# saturation
+angle = centroid_update[:,0] * 2 * np.pi/180
+ax2.set_yticklabels([])
+ax2.scatter(angle, radius, c=centroid_rgb/255, s=200, edgecolor='k', lw = 0.25, alpha=1, zorder=2)
+ax2.set_rmax(np.max(radius) + 0.1)
+ax2.grid(zorder=1)
+ax2.set_title("Hue and Saturation \n Distribution", y=1.2)
 
-plt.tight_layout
+ax3 = fig.add_subplot(gs[:,1])
+ax3.set_title("Most Common \n Colors")
+ax3.set_yticks(range(n_centroids), hex_color)
+ax3.yaxis.tick_right()
+ax3.tick_params(right=True, left=False)
+ax3.imshow(sorted_colors)
+
+#plt.tight_layout()
 
 try:
 	plt.show()
