@@ -10,12 +10,9 @@
 #########################################
 
 # Face/skin detection to remove skin tone from color story analysis 
-# Kmeans clustering to find most dominant colors
 # Add Hues range to colors for more choices in color depth
-# Output HEX color codes for these colors
 # Web scraping (might be a separate script)
 # App construction
-
 
 ##### The commented numbers are expected results for utah_sunset.jpg
 
@@ -166,12 +163,11 @@ ax2.set_zlabel("Value")
 # 1. Randomly select k cluster centroids       							### Done					
 # 2. Assign each data point to the nearest centroid to form clusters	### Done
 # 3. Recalculate centroid by averaging points (update step)				### Done
-# 4. Repeat until convergence											### Done
+# 4. Repeat for set number of iterations								### Done
 
-# 5. Set cutoff for Euclidean distances to improve color accuracy
 # 6. Farthest point sampling to increase chances of color diversity
 # 7. Final color palette should exclude color of similar hues (?)
-# 8. Deal with reds (hue circle freq discrimination?)
+# 8. Deal with reds being at 0,360 										### Done
 
 # image_array is the 1% reduced image (shape = h(pixels) x w(pixels) x 3(color channels))
 
@@ -241,13 +237,29 @@ def hue_circular_hist(array):
 # plt.figure()
 # hue_circular_hist(hsv_image)
 
-# Farthest Point Sampling
-def fps(array):
+# Farthest Point Sampling in Hue space
+def fps(image_array, num_centroids):
 
-	centroid_360 = array[0,:] * 2
+	image_reshaped = reshape_image(image_array)[1]
+	h = image_reshaped[:,0]
 
+	hue_max = np.max(h)
+	hue_min = np.min(h)
 
-	return(None)
+	print(hue_min)
+	print(hue_max)
+
+	fp_hues = np.zeros((num_centroids,1))
+
+	theta = (hue_max - hue_min) / num_centroids
+
+	fp_hues[0] = hue_min
+
+	for i in range(1,num_centroids):
+		fp_hues[i] = fp_hues[i-1] + theta
+
+	return(fp_hues)
+
 
 # Total random selection of centroids
 # Centroids here are pixels, not hues, as a proxy for initiating HSV values
@@ -389,36 +401,33 @@ hex_color = []
 for n in range(num_iter):
 	centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroid_update)
 	centroid_rgb =  convert_colors(centroid_update)
-	frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
+	#frequent_colors = sort_centroids(centroid_rgb, n_centroids, totals_array)
 	sorted_colors = sort_hue(centroid_update, centroid_rgb)
 
 for color in sorted_colors:
 	hex_color.append(matplotlib.colors.to_hex(color / 255))
 
 fig = plt.figure()
-gs = gridspec.GridSpec(1,2, wspace=0.05, hspace=1)
+gs = gridspec.GridSpec(1,2) #, wspace=0.1, hspace=1)
 
 ax1 = fig.add_subplot(gs[0,0])
-ax1.set_title("Image")
-ax1.imshow(original_image)
+ax1.set_title("Most Common \n Colors")
+ax1.set_yticks(range(n_centroids), hex_color)
+ax1.yaxis.tick_left()
+ax1.imshow(sorted_colors)
+ax1.set_ylabel("Color Hex Code")
+ax1.set_xticks([])
 
-ax2 = fig.add_subplot(gs[1,0], projection = 'polar')
+ax2 = fig.add_subplot(gs[0,1], projection = 'polar')
 radius = centroid_update[:,1] / 255	# saturation
 angle = centroid_update[:,0] * 2 * np.pi/180
 ax2.set_yticklabels([])
 ax2.scatter(angle, radius, c=centroid_rgb/255, s=200, edgecolor='k', lw = 0.25, alpha=1, zorder=2)
 ax2.set_rmax(np.max(radius) + 0.1)
 ax2.grid(zorder=1)
-ax2.set_title("Hue and Saturation \n Distribution", y=1.2)
+ax2.set_title("Hue (angle) vs. \n Saturation (radius)", y=1.1)
 
-ax3 = fig.add_subplot(gs[:,1])
-ax3.set_title("Most Common \n Colors")
-ax3.set_yticks(range(n_centroids), hex_color)
-ax3.yaxis.tick_right()
-ax3.tick_params(right=True, left=False)
-ax3.imshow(sorted_colors)
-
-#plt.tight_layout()
+plt.tight_layout()
 
 try:
 	plt.show()
