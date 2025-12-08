@@ -246,9 +246,6 @@ def fps(image_array, num_centroids):
 	hue_max = np.max(h)
 	hue_min = np.min(h)
 
-	print(hue_min)
-	print(hue_max)
-
 	fp_hues = np.zeros((num_centroids,1))
 
 	theta = (hue_max - hue_min) / num_centroids
@@ -259,6 +256,22 @@ def fps(image_array, num_centroids):
 		fp_hues[i] = fp_hues[i-1] + theta
 
 	return(fp_hues)
+
+def euclidean(saturation, value):
+	return(np.sqrt(saturation**2 + value**2))
+
+def init_centroids_fps(image_array, num_centroids):
+	# Reshape 3D array into 2D, with the first dimension being having shape [num_pixels]
+	num_pixels, image_reshaped = reshape_image(image_array)
+
+	# saturation = image_reshaped[:,1]
+	# value = image_reshaped[:,2]
+
+	sv = np.full((num_centroids, 2), 255/2)
+	fp_hues = fps(image_array, num_centroids)
+	fps_centroids = np.hstack([fp_hues, sv])
+
+	return(fps_centroids)
 
 
 # Total random selection of centroids
@@ -393,7 +406,11 @@ def kmc(image_array, num_centroids, centroids):
 
 num_iter = 10
 # Randomly select first 10 centroids
-indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
+# indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
+
+# Initiate centroids with farthest point sampling in Hue dimension
+# Setting saturation and value to 255 / 2
+centroids_0 = init_centroids_fps(hsv_image, n_centroids)
 
 centroid_update, totals_array, n_centroids = kmc(hsv_image, n_centroids, centroids_0)
 hex_color = []
