@@ -263,10 +263,7 @@ def euclidean(saturation, value):
 def init_centroids_fps(image_array, num_centroids):
 	# Reshape 3D array into 2D, with the first dimension being having shape [num_pixels]
 	num_pixels, image_reshaped = reshape_image(image_array)
-
-	# saturation = image_reshaped[:,1]
-	# value = image_reshaped[:,2]
-
+	
 	sv = np.full((num_centroids, 2), 255/2)
 	fp_hues = fps(image_array, num_centroids)
 	fps_centroids = np.hstack([fp_hues, sv])
