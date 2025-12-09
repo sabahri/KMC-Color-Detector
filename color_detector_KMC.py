@@ -150,9 +150,15 @@ ax1.set_zlabel("Blue")
 
 # HSV Scatter Plot
 
+x_hsv = sat.flatten() * np.cos(hue.flatten()*2*np.pi/180)
+y_hsv = sat.flatten() * np.sin(hue.flatten()*2*np.pi/180)
+z_hsv = val.flatten()
+
 ax2 = fig.add_subplot(1, 2, 2, projection = "3d")
 ax2.scatter(hue.flatten(), sat.flatten(), val.flatten(), facecolors=pixel_colors, marker='.')
+#ax2.scatter(x_hsv, y_hsv, z_hsv, facecolors=pixel_colors, marker='.')
 ax2.set_xlabel("Hue")
+#ax2.set_xticks([])
 ax2.set_ylabel("Saturation")
 ax2.set_zlabel("Value")
 
@@ -263,7 +269,7 @@ def euclidean(saturation, value):
 def init_centroids_fps(image_array, num_centroids):
 	# Reshape 3D array into 2D, with the first dimension being having shape [num_pixels]
 	num_pixels, image_reshaped = reshape_image(image_array)
-	
+
 	sv = np.full((num_centroids, 2), 255/2)
 	fp_hues = fps(image_array, num_centroids)
 	fps_centroids = np.hstack([fp_hues, sv])
@@ -403,7 +409,7 @@ def kmc(image_array, num_centroids, centroids):
 
 num_iter = 10
 # Randomly select first 10 centroids
-# indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
+#indices_0, centroids_0 = init_centroids(hsv_image, n_centroids)
 
 # Initiate centroids with farthest point sampling in Hue dimension
 # Setting saturation and value to 255 / 2
