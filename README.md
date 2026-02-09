@@ -7,14 +7,22 @@ Color Story
 4. [Future Work](#4-future-work)
 
 # 1. Project Overview
-This script detects the predominant colors in a given image. Since I intended it as an educational exercise in Computer Vision, I ignored existing OpenCV functions except for basic import and RGB <--> HSV data conversions. The script calculates colors in HSV space in order to facilitate future color detection adjustments according to Hue groups. To use, run:
+This script detects the predominant colors in a given image. Since I intended it as an educational exercise in Computer Vision, I ignored existing OpenCV functions except for basic import and RGB <--> HSV data conversions. The script calculates colors in HSV space in order to facilitate future color detection adjustments according to Hue groups. 
+
+Dependencies:
+
+```
+conda install -c conda-forge opencv numpy matplotlib scipy
+```
+
+To use, run:
 
 ```
 python color_detector_KMC.py <num_colors> <image_path>
 ```
 e.g.
 ```
-python color_detector_KMC.py 5 utah_sunset.jpg
+python color_detector_KMC.py 5 images/flowers4.jpg
 ```
 
 # 2. Architecture
@@ -57,7 +65,7 @@ python color_detector_KMC.py 5 utah_sunset.jpg
 │           ↓             │
 │  ┌──────────────────┐   │
 │  │ Update Centroids │   │
-│  │ (circular mean)  │   │
+│  │      (mean)      │   │
 │  └────────┬─────────┘   │
 │           ↓             │
 │  └──→ Iterate 10x       │
@@ -73,9 +81,16 @@ python color_detector_KMC.py 5 utah_sunset.jpg
 ```
 
 # 3. Script Summary
-The optimization method is KMC, which is probably the most basic unsupervised method. We first select an initiating set of pixel colors present in the image. We use farthest poinst sampling (FPS) in Hue space, selecting Hue values located at intervals of pi / (# number of colors to detect). The initiating Saturation and Value are set to 122.5. The program then compares each pixel to the initiating centroids, calculates the distance betweeen them, and assigns each pixel to the closest centroid. Finally, a new set of centroids is calculate based on the average of each group, and the process repeats again for a hard-coded number of iterations.
 
-NOTE: OpenCV formats Hue values to range between 0 and 180. On the other hand, circular or cylindrical coordinate systems requre a range between 0 and 360. Therefore, Hue values are multiplied by 2 before the mean calculation, and then divided by 2 afterwards in keeping with OpenCV format.
+IMPORTANT NOTE: OpenCV formats Hue values to range between 0 and 180. On the other hand, circular or cylindrical coordinate systems requre a range between 0 and 360 in radians. Therefore, Hue values are multiplied by 2 and converted to radians before the mean calculation, and then reconverted afterwards in keeping with OpenCV format.
+
+The optimization method is K-means clustering (KMC). I first selected an initiating set of pixel colors using farthest point sampling (FPS)in Hue space, selecting Hue values located at intervals of 180 / (# number of colors to detect). The initiating Saturation and Value are set to 122.5.
+
+The program then compares each pixel to each initiating centroid, and calculates the distance betweeen them using the L2 norm in cylindrical coordinates, before assigning each pixel to the closest centroid. Keep in mind that for Hue, the values 0 and 179 are both red, which can potentially skew distance calculations in Hue space (e.g. 2 degrees is closer to 179 than to 6). To get around this, I implemented a wraparoud that takes the minimum of the difference in hues between the pixel and centroid. 
+
+To obtain the updated set of centroids, I calculated the HSV mean of each cluster. Since Hue space is circular, you need to use a circular mean, while Saturation and Values are averaged normally. You can read about the circular mean here: https://en.wikipedia.org/wiki/Circular_mean
+
+The process repeats again for a hard-coded number of iterations (10 in this case, but you can change it by changing num_iter).
 
 The program produces three figures as output:
 
