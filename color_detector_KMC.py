@@ -50,8 +50,8 @@ original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 # 27 x 36 x 3 array
 
 # Increasing pixel percentage increases final color accuracy but also runtime
-perc = 0.01
-reduced_image = cv2.resize(original_image, (0,0), fx=perc, fy=perc, interpolation=cv2.INTER_AREA)
+perc = 5
+reduced_image = cv2.resize(original_image, (0,0), fx=perc/100, fy=perc/100, interpolation=cv2.INTER_AREA)
 hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
 
 #########################################
@@ -106,7 +106,7 @@ def sort_hue(average_hsv, average_rgb):
 ############ Comparing Photos ###########
 #########################################
 
-Titles = ["Original", "Resized to 1%"] #, "Canny Edge Detection"]
+Titles = ["Original", "Resized to {}%".format(perc)]
 images = [original_image, reduced_image] #, edges]
 count = len(images)
 
@@ -155,7 +155,7 @@ y_hsv = sat.flatten() * np.sin(hue.flatten()*2*np.pi/180)
 z_hsv = val.flatten()
 
 ax2 = fig.add_subplot(1, 2, 2, projection = "3d")
-ax2.scatter(hue.flatten(), sat.flatten(), val.flatten(), facecolors=pixel_colors, marker='.')
+ax2.scatter(hue.flatten() * 2, sat.flatten(), val.flatten(), facecolors=pixel_colors, marker='.')
 #ax2.scatter(x_hsv, y_hsv, z_hsv, facecolors=pixel_colors, marker='.')
 ax2.set_xlabel("Hue")
 #ax2.set_xticks([])
@@ -171,7 +171,7 @@ ax2.set_zlabel("Value")
 # 3. Recalculate centroid by averaging points (update step)				### Done
 # 4. Repeat for set number of iterations								### Done
 
-# 6. Farthest point sampling to increase chances of color diversity
+# 6. Farthest point sampling to increase chances of color diversity		### Done
 # 7. Final color palette should exclude color of similar hues (?)
 # 8. Deal with reds being at 0,360 										### Done
 
