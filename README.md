@@ -2,12 +2,68 @@ Color Story
 
 # **Table of Contents**
 - Project Overview
+- Architecture
 - Script Summary
 - Mathematical Operations
 - TO DO
 
 # **Project Overview**
 This script detects the predominant colors in a given image. Since I intended it as an educational exercise in Computer Vision, I ignored existing OpenCV functions except for basic import and RGB <--> HSV data conversions. The script calculates colors in HSV space in order to facilitate future color detection adjustments according to Hue groups.
+
+# **Architecture**
+
+[Input Image] 
+    ↓
+┌─────────────────────────┐
+│   Preprocessing         │
+│  ┌──────────────────┐   │
+│  │ Downsample to 5% │   │
+│  └────────┬─────────┘   │
+│           ↓             │
+│  ┌──────────────────┐   │
+│  │ RGB → HSV        │   │
+│  │ Conversion       │   │
+│  └────────┬─────────┘   │
+│           ↓             │
+│  ┌──────────────────┐   │
+│  │ Reshape to       │   │
+│  │ Pixel Array      │   │
+│  └────────┬─────────┘   │
+└───────────┼─────────────┘
+            ↓
+┌─────────────────────────┐
+│   K-Means Clustering    │
+│  ┌──────────────────┐   │
+│  │ Initialize       │   │
+│  │ Centroids (FPS)  │   │
+│  └────────┬─────────┘   │
+│           ↓             │
+│  ┌──────────────────┐   │
+│  │ Calculate        │   │
+│  │ Distances (HSV)  │───┐
+│  └────────┬─────────┘   │ 
+│           ↓             │
+│  ┌──────────────────┐   │
+│  │ Assign to        │   │
+│  │ Clusters         │   │
+│  └────────┬─────────┘   │
+│           ↓             │
+│  ┌──────────────────┐   │
+│  │ Update Centroids │   │
+│  │ (circular mean)  │   │
+│  └────────┬─────────┘   │
+│           ↓             │
+│  └──→ Iterate 10x       │
+└─────────────────────────┘
+    ↓
+[Sort by Hue]
+    ↓
+┌─────────────────────────┐
+│  Generate Visualizations│
+│  ├→ Color Swatches+Hex  │
+│  ├→ Polar Plot (H vs S) │
+│  └→ 3D Scatter (RGB/HSV)│
+└─────────────────────────┘
 
 # **Script Summary**
 The optimization method is KMC, which is probably the most basic unsupervised method. We first select an initiating set of pixel colors present in the image. We use farthest poinst sampling (FPS) in Hue space, selecting Hue values located at intervals of 2pi / (# number of colors to detect). The initiating Saturation and Value are set to 122.5. The program then compares each pixes to the initiating centroids, calculates the distance betweeen them, and assigns each pixel to the closest centroid. Finally, a new set of centroids is calculate based on the average of each group, and the process repeats again for a hard-coded number of iterations.
@@ -30,5 +86,6 @@ The third shows the distribution of common hues according to increasing Hue, alo
 
 # **TO DO:**
   - Implement feature recognition to exclude photographed people from color stories (because that's just weird)
+  - Animate the graphic so that you can see the centroid evolution after every iteration
   - Create a matrix plot of colors so that common colors of similar hues are grouped together
   - Implement and interactive feature so that the HEX code appears when a pixel is clicked
