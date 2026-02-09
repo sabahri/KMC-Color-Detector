@@ -40,8 +40,8 @@ This script detects the predominant colors in a given image. Since I intended it
 │           ↓             │
 │  ┌──────────────────┐   │
 │  │ Calculate        │   │
-│  │ Distances (HSV)  │───┐ (circular hue,
-│  └────────┬─────────┘   │  cylindrical)
+│  │ Distances (HSV)  │   │
+│  └────────┬─────────┘   │ 
 │           ↓             │
 │  ┌──────────────────┐   │
 │  │ Assign to        │   │
