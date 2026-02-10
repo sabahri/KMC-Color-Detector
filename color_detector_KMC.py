@@ -1,5 +1,3 @@
-# INVOKE (app name in progress)
-
 # Program for color detection
 # Useful Links:
 # https://realpython.com/python-opencv-color-spaces/
@@ -8,11 +6,6 @@
 #########################################
 ############ Things to do ###############
 #########################################
-
-# Face/skin detection to remove skin tone from color story analysis 
-# Add Hues range to colors for more choices in color depth
-# Web scraping (might be a separate script)
-# App construction
 
 ##### The commented numbers are expected results for utah_sunset.jpg
 
@@ -23,7 +16,6 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
-from scipy.optimize import curve_fit
 import warnings
 import math
 
@@ -42,14 +34,9 @@ n_centroids = int(sys.argv[1])
 input_image = sys.argv[2]
 
 original_image = cv2.imread(input_image)
-
-# 2736 x 3648 x 3 array
 original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)		
 
-# Reducing to 5% of image resolution to speed up color splitting
-# 27 x 36 x 3 array
-
-# Increasing pixel percentage increases final color accuracy but also runtime
+# Downsample image to decrease runtime
 perc = 5
 reduced_image = cv2.resize(original_image, (0,0), fx=perc/100, fy=perc/100, interpolation=cv2.INTER_AREA)
 hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
@@ -128,8 +115,8 @@ hgt, wth, chn = reduced_image.shape
 
 pixel_colors = reduced_image.reshape(hgt * wth, chn)
 norm = colors.Normalize(vmin = 1., vmax = 1.)
-norm.autoscale(pixel_colors)					# 972 x 3 array
-pixel_colors = norm(pixel_colors).tolist()		# 972 x 3 list
+norm.autoscale(pixel_colors)					
+pixel_colors = norm(pixel_colors).tolist()		
 
 # Split image into component channels (RGB, HSV respectively)
 
@@ -165,17 +152,6 @@ ax2.set_zlabel("Value")
 ##############################################
 ############ K-means Clustering ##############
 ##############################################
-
-# 1. Randomly select k cluster centroids       							### Done					
-# 2. Assign each data point to the nearest centroid to form clusters	### Done
-# 3. Recalculate centroid by averaging points (update step)				### Done
-# 4. Repeat for set number of iterations								### Done
-
-# 6. Farthest point sampling to increase chances of color diversity		### Done
-# 7. Final color palette should exclude color of similar hues (?)
-# 8. Deal with reds being at 0,360 										### Done
-
-# image_array is the 1% reduced image (shape = h(pixels) x w(pixels) x 3(color channels))
 
 def reshape_image(image_array):
 	height, width, c_channels = image_array.shape
@@ -239,9 +215,6 @@ def hue_circular_hist(array):
 	bars = ax.bar(hue_rad, count, width=width, color = 'lightgreen')
 
 	plt.title('Circular Representation of Hue Histogram')
-
-# plt.figure()
-# hue_circular_hist(hsv_image)
 
 # Farthest Point Sampling in Hue space
 def fps(image_array, num_centroids):
@@ -311,10 +284,10 @@ def distance_hsv(image_array, num_centroids, centroids):
 
 	# Calculating the L2 norm in cylindrical coordinates
 
-	# d.shape =  num_pixels x num_centroids (972 x 5)
-	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
+	# d.shape =  num_pixels x num_centroids 
+	# image_reshaped.shape = num_pixels x c_channels 
 	# num_centroids = 5
-	# centroids.shape = num_centroids x c_channels (5 x 3)
+	# centroids.shape = num_centroids x c_channels 
 
 	# Note: num_pixels = image_reshaped.shape[0]
 	num_pixels, image_reshaped = reshape_image(image_array)
@@ -363,14 +336,14 @@ def circular_mean(hues):
 def kmc(image_array, num_centroids, centroids):
 
 	# num_pixels = 972
-	# image_reshaped.shape = num_pixels x c_channels (972 x 3)
-	# d.shape =  num_pixels x num_centroids (972 x 5)
+	# image_reshaped.shape = num_pixels x c_channels 
+	# d.shape =  num_pixels x num_centroids 
 	num_pixels, image_reshaped = reshape_image(image_array)
 	d = distance_hsv(image_array, num_centroids, centroids)
 
 	closest_centroid = np.argmin(d, axis=1) # 1 x num_pixels
 
-	counts = np.bincount(closest_centroid, minlength=num_centroids)  # 1 x 5
+	counts = np.bincount(closest_centroid, minlength=num_centroids) 
 
 	average_h = np.zeros((num_centroids, 1))
 
@@ -428,7 +401,7 @@ for color in sorted_colors:
 	hex_color.append(matplotlib.colors.to_hex(color / 255))
 
 fig = plt.figure()
-gs = gridspec.GridSpec(1,2) #, wspace=0.1, hspace=1)
+gs = gridspec.GridSpec(1,2)
 
 ax1 = fig.add_subplot(gs[0,0])
 ax1.set_title("Most Common \n Colors")

@@ -7,9 +7,9 @@ Color Story
 4. [Future Work](#4-future-work)
 
 # 1. Project Overview
-This script detects the predominant colors in a given image. Since I intended it as an educational exercise in Computer Vision, I ignored existing OpenCV functions except for basic import and RGB <--> HSV data conversions. The script calculates colors in HSV space in order to facilitate future color detection adjustments according to Hue groups. 
+This script detects the predominant colors in a given image. Since I intended it as an educational exercise in basic Computer Vision, I ignored existing OpenCV functions except for basic import and RGB <--> HSV data conversions. The script calculates average colors in HSV space (as opposed to RGB) in order to facilitate future color detection adjustments according to Hue groups. 
 
-Dependencies:
+Dependencies (virtual environment recommended):
 
 ```
 conda install -c conda-forge opencv numpy matplotlib scipy
@@ -90,7 +90,7 @@ The program then compares each pixel to each initiating centroid, and calculates
 
 To obtain the updated set of centroids, I calculated the HSV mean of each cluster. Since Hue space is circular, you need to use a circular mean, while Saturation and Values are averaged normally. You can read about the circular mean here: https://en.wikipedia.org/wiki/Circular_mean
 
-The process repeats again for a hard-coded number of iterations (10 in this case, but you can change it by changing num_iter).
+The process repeats again for a hard-coded number of iterations (10 in this case, but you can change it by changing variable num_iter).
 
 The program produces three figures as output:
 
