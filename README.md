@@ -82,11 +82,11 @@ python color_detector_KMC.py 5 images/flowers4.jpg
 
 # 3. Script Summary
 
-IMPORTANT NOTE: OpenCV formats Hue values to range between 0 and 180. On the other hand, circular or cylindrical coordinate systems requre a range between 0 and 360 in radians. Therefore, Hue values are multiplied by 2 and converted to radians before the mean calculation, and then reconverted afterwards in keeping with OpenCV format.
-
-The optimization method is K-means clustering (KMC). I first selected an initiating set of pixel colors using farthest point sampling (FPS)in Hue space, selecting Hue values located at intervals of 180 / (# number of colors to detect). The initiating Saturation and Value are set to 122.5.
+The optimization method is K-means clustering (KMC). I first selected an initiating set of pixel colors using farthest point sampling (FPS) in Hue space, selecting Hue values located at intervals of 180 / (# number of colors to detect). The initiating Saturation and Value are set to 122.5.
 
 The program then compares each pixel to each initiating centroid, and calculates the distance betweeen them using the L2 norm in cylindrical coordinates, before assigning each pixel to the closest centroid. Keep in mind that for Hue, the values 0 and 179 are both red, which can potentially skew distance calculations in Hue space (e.g. 2 degrees is closer to 179 than to 6). To get around this, I implemented a wraparoud that takes the minimum of the difference in hues between the pixel and centroid. 
+
+*IMPORTANT NOTE: OpenCV formats Hue values to range between 0 and 180. On the other hand, circular or cylindrical coordinate systems requre a range between 0 and 360 in radians. Therefore, Hue values are multiplied by 2 and converted to radians before the mean calculation, and then reconverted afterwards in keeping with OpenCV format.*
 
 To obtain the updated set of centroids, I calculated the HSV mean of each cluster. Since Hue space is circular, you need to use a circular mean, while Saturation and Values are averaged normally. You can read about the circular mean here: https://en.wikipedia.org/wiki/Circular_mean
 
