@@ -11,17 +11,17 @@ This script detects the predominant colors in a given image. Since I intended it
 
 Dependencies (virtual environment recommended):
 
-```
+```bash
 conda install -c conda-forge opencv numpy matplotlib scipy
 ```
 
 To use, run:
 
-```
+```bash
 python color_detector_KMC.py <num_colors> <image_path>
 ```
 e.g.
-```
+```bash
 python color_detector_KMC.py 5 images/flowers4.jpg
 ```
 
