@@ -37,7 +37,7 @@ original_image = cv2.imread(input_image)
 original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)		
 
 # Downsample image to decrease runtime
-perc = 5
+perc = 10
 reduced_image = cv2.resize(original_image, (0,0), fx=perc/100, fy=perc/100, interpolation=cv2.INTER_AREA)
 hsv_image = cv2.cvtColor(reduced_image, cv2.COLOR_RGB2HSV)
 
